@@ -76,9 +76,9 @@ Conventions:
 - [x] Dashboard existant (stats + My Learning + Recent Activity)
 - [ ] Sections à compléter:
   - [x] “Mes cours” (cards + progress bar)
-  - [ ] “Cours complétés” (filtre/onglet + accès certificat)
-  - [ ] “Certificats” (liste + download + lien verify)
-  - [ ] “Recommandés / Catalogue” (liens rapides)
+  - [x] “Cours complétés” (filtre/onglet + accès certificat)
+  - [x] “Certificats” (liste + download + lien verify)
+  - [x] “Recommandés / Catalogue” (liens rapides)
 
 ### 3.2 Catalogue & cours
 - [x] Catalogue `courses/index`
@@ -96,8 +96,8 @@ Conventions:
   - [x] Pagination
 - [ ] Page cours:
   - [x] Module list: bouton Start pointe vers la 1ère leçon (actuellement placeholder)
-  - [ ] Bloc progression (pour enrolled)
-  - [ ] Bloc prérequis (déjà affiché) → UX plus claire + lien vers cours prérequis
+  - [x] Bloc progression (pour enrolled)
+  - [x] Bloc prérequis (déjà affiché) → UX plus claire + lien vers cours prérequis
 - [ ] Player leçon:
   - [x] Navigation “Previous / Next lesson” réelle (actuellement placeholders)
   - [x] Indication progression globale + “Mark as complete” feedback (toast)
@@ -105,8 +105,8 @@ Conventions:
 
 ### 3.4 Quiz (student)
 - [x] Quiz player (dans lesson)
-- [ ] Résumé fin de quiz (score, passing, feedback, retry)
-- [ ] Historique tentatives (si attempts existent)
+- [x] Résumé fin de quiz (score, passing, feedback, retry)
+- [x] Historique tentatives (si attempts existent)
 
 ### 3.5 Certificats (student)
 - [x] Lien “Download certificate” visible depuis un endroit central (dashboard/certificates)
@@ -120,9 +120,9 @@ Conventions:
 - [x] Admin dashboard page
 - [ ] Sections:
   - [x] KPIs de base (users/courses/enrollments)
-  - [ ] Completion rate + certificates issued
-  - [ ] Charts (inscriptions par jour, complétion)
-  - [ ] Actions rapides: create course, create user, exports
+  - [x] Completion rate + certificates issued
+  - [x] Charts (inscriptions par jour, complétion)
+  - [x] Actions rapides: create course, create user, exports
 
 ### 4.1bis Reporting
 - [ ] “Reports” section/page (optionnel)
@@ -144,9 +144,9 @@ Conventions:
 ### 4.4 Question Bank
 - [x] Page question-bank (search + target quiz + copy)
 - [ ] Améliorations:
-  - [ ] Filtre par type (MCQ/TF/Short)
-  - [ ] Filtre par course
-  - [ ] Aperçu des options + mise en évidence des bonnes réponses
+  - [x] Filtre par type (MCQ/TF/Short)
+  - [x] Filtre par course
+  - [x] Aperçu des options + mise en évidence des bonnes réponses
 
 ### 4.5 Users Management
 - [x] Liste users
@@ -156,7 +156,7 @@ Conventions:
 
 ### 4.6 Certificates (admin)
 - [x] Liste certificats + recherche
-- [ ] Détail certificat (vue admin) (optionnel)
+- [x] Détail certificat (vue admin) (optionnel)
 
 ---
 

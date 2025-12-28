@@ -22,6 +22,11 @@ interface Quiz {
     };
 }
 
+interface Course {
+    id: number;
+    title: string;
+}
+
 interface QuestionOption {
     id: number;
     text: string;
@@ -40,7 +45,8 @@ interface Question {
 interface Props {
     questions: Question[];
     quizzes: Quiz[];
-    filters: { q: string };
+    courses: Course[];
+    filters: { q: string; type?: string; course?: string };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -50,19 +56,33 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function QuestionBankIndex({ questions, quizzes, filters }: Props) {
+export default function QuestionBankIndex({ questions, quizzes, courses, filters }: Props) {
     const [q, setQ] = useState(filters.q ?? '');
     const [targetQuizId, setTargetQuizId] = useState<string>('');
+    const [type, setType] = useState(filters.type ?? '');
+    const [courseId, setCourseId] = useState(filters.course ?? '');
 
     const targetQuiz = useMemo(() => quizzes.find((z) => String(z.id) === targetQuizId) ?? null, [quizzes, targetQuizId]);
 
     const submitSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get(questionBankRoutes.index({ query: { q: q || undefined } }).url, {}, { preserveScroll: true });
+        router.get(
+            questionBankRoutes.index({
+                query: {
+                    q: q || undefined,
+                    type: type || undefined,
+                    course: courseId || undefined,
+                },
+            }).url,
+            {},
+            { preserveScroll: true },
+        );
     };
 
     const reset = () => {
         setQ('');
+        setType('');
+        setCourseId('');
         router.get(questionBankRoutes.index().url);
     };
 
@@ -87,7 +107,7 @@ export default function QuestionBankIndex({ questions, quizzes, filters }: Props
                     </p>
                 </div>
 
-                <form onSubmit={submitSearch} className="grid gap-4 rounded-lg border border-sidebar-border/70 bg-card p-4 md:grid-cols-3">
+                <form onSubmit={submitSearch} className="grid gap-4 rounded-lg border border-sidebar-border/70 bg-card p-4 md:grid-cols-4">
                     <div className="md:col-span-2">
                         <Label htmlFor="q">Search</Label>
                         <Input
@@ -96,6 +116,38 @@ export default function QuestionBankIndex({ questions, quizzes, filters }: Props
                             onChange={(e) => setQ(e.target.value)}
                             placeholder="Search by question text, course, or quiz title…"
                         />
+                    </div>
+
+                    <div>
+                        <Label>Type</Label>
+                        <Select value={type} onValueChange={setType}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="All types" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">All</SelectItem>
+                                <SelectItem value="mcq">MCQ</SelectItem>
+                                <SelectItem value="true_false">TF</SelectItem>
+                                <SelectItem value="short_answer">Short</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div>
+                        <Label>Course</Label>
+                        <Select value={courseId} onValueChange={setCourseId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="All courses" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">All</SelectItem>
+                                {courses.map((c) => (
+                                    <SelectItem key={c.id} value={String(c.id)}>
+                                        {c.title}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div>
                         <Label>Target quiz</Label>
@@ -113,7 +165,7 @@ export default function QuestionBankIndex({ questions, quizzes, filters }: Props
                         </Select>
                     </div>
 
-                    <div className="flex items-center gap-2 md:col-span-3">
+                    <div className="flex items-center gap-2 md:col-span-4">
                         <Button type="submit">Search</Button>
                         <Button type="button" variant="outline" onClick={reset}>
                             Reset
@@ -143,8 +195,23 @@ export default function QuestionBankIndex({ questions, quizzes, filters }: Props
                                     <td className="px-6 py-4">
                                         <div className="font-medium text-foreground line-clamp-2">{question.text}</div>
                                         {question.options?.length ? (
-                                            <div className="mt-1 text-xs text-muted-foreground">
-                                                Options: {question.options.length}
+                                            <div className="mt-2 space-y-1 text-xs">
+                                                {question.options.slice(0, 6).map((opt) => (
+                                                    <div
+                                                        key={opt.id}
+                                                        className={
+                                                            opt.is_correct
+                                                                ? 'text-green-600'
+                                                                : 'text-muted-foreground'
+                                                        }
+                                                    >
+                                                        {opt.is_correct ? '✓ ' : '• '}
+                                                        {opt.text}
+                                                    </div>
+                                                ))}
+                                                {question.options.length > 6 ? (
+                                                    <div className="text-muted-foreground">…</div>
+                                                ) : null}
                                             </div>
                                         ) : null}
                                     </td>

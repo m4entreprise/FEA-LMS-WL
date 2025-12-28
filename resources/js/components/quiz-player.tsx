@@ -47,6 +47,9 @@ interface Props {
 export default function QuizPlayer({ quiz }: Props) {
     const lastAttempt = quiz.attempts && quiz.attempts.length > 0 ? quiz.attempts[0] : null;
     const [hasStarted, setHasStarted] = useState(false);
+    const totalPoints = quiz.questions.reduce((sum, q) => sum + q.points, 0);
+    const requiredPoints = Math.ceil((quiz.passing_score / 100) * totalPoints);
+    const lastAttemptPercent = lastAttempt && totalPoints > 0 ? Math.round((lastAttempt.score / totalPoints) * 100) : 0;
 
     // Form state for answers
     // answers structure: [ { question_id: 1, option_id: 2, text_answer: null }, ... ]
@@ -103,17 +106,28 @@ export default function QuizPlayer({ quiz }: Props) {
         });
     };
 
-    // If passed, show success screen
-    if (lastAttempt && lastAttempt.passed) {
+    if (lastAttempt && !hasStarted) {
+        const passed = lastAttempt.passed;
         return (
             <div className="space-y-6">
-                <Alert className="border-green-500 bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-300">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <AlertTitle>Quiz Passed!</AlertTitle>
-                    <AlertDescription>
-                        You scored {lastAttempt.score} points. Great job!
-                    </AlertDescription>
-                </Alert>
+                {passed ? (
+                    <Alert className="border-green-500 bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-300">
+                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        <AlertTitle>Quiz Passed!</AlertTitle>
+                        <AlertDescription>
+                            You scored {lastAttempt.score} / {totalPoints} points ({lastAttemptPercent}%).
+                        </AlertDescription>
+                    </Alert>
+                ) : (
+                    <Alert variant="destructive">
+                        <XCircle className="h-4 w-4" />
+                        <AlertTitle>Quiz Failed</AlertTitle>
+                        <AlertDescription>
+                            You scored {lastAttempt.score} / {totalPoints} points ({lastAttemptPercent}%).
+                            You need {quiz.passing_score}% ({requiredPoints} points) to pass.
+                        </AlertDescription>
+                    </Alert>
+                )}
                 
                 <Card>
                     <CardHeader>
@@ -150,16 +164,6 @@ export default function QuizPlayer({ quiz }: Props) {
     if (!hasStarted) {
         return (
             <div className="space-y-6">
-                {lastAttempt && !lastAttempt.passed && (
-                    <Alert variant="destructive">
-                        <XCircle className="h-4 w-4" />
-                        <AlertTitle>Previous Attempt Failed</AlertTitle>
-                        <AlertDescription>
-                            You scored {lastAttempt.score} points. You need {quiz.passing_score}% to pass.
-                        </AlertDescription>
-                    </Alert>
-                )}
-
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-xl">Quiz Instructions</CardTitle>

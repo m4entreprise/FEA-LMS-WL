@@ -2,12 +2,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Progress } from '@/components/ui/progress';
 import AppLayout from '@/layouts/app-layout';
 import * as coursesRoutes from '@/routes/courses';
 import * as lessonsRoutes from '@/routes/lessons';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, Link, usePage } from '@inertiajs/react';
-import { ChevronLeft, ChevronDown, FileText, Video, HelpCircle, FileBox, File, CheckCircle, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronDown, FileText, Video, HelpCircle, FileBox, File, CheckCircle, Lock, XCircle } from 'lucide-react';
 
 interface Content {
     id: number;
@@ -39,9 +40,10 @@ interface Props {
     missingPrerequisiteIds?: number[];
     firstContentId?: number | null;
     continueContentId?: number | null;
+    progress?: { percent: number; completed: number; total: number };
 }
 
-export default function CourseShow({ course, isEnrolled, completedAt, missingPrerequisiteIds = [], firstContentId = null, continueContentId = null }: Props) {
+export default function CourseShow({ course, isEnrolled, completedAt, missingPrerequisiteIds = [], firstContentId = null, continueContentId = null, progress }: Props) {
     const page = usePage<{ errors?: Record<string, string> }>();
     const prereqError = page.props.errors?.prerequisites;
 
@@ -118,9 +120,17 @@ export default function CourseShow({ course, isEnrolled, completedAt, missingPre
                                                 <Link className="hover:underline" href={coursesRoutes.show(p.slug).url}>
                                                     {p.title}
                                                 </Link>
-                                                <span className={missingSet.has(p.id) ? 'text-muted-foreground' : 'text-primary'}>
-                                                    {missingSet.has(p.id) ? 'Not completed' : 'Completed'}
-                                                </span>
+                                                {missingSet.has(p.id) ? (
+                                                    <span className="inline-flex items-center gap-1 text-muted-foreground">
+                                                        <XCircle className="h-4 w-4" />
+                                                        Not completed
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-primary">
+                                                        <CheckCircle className="h-4 w-4" />
+                                                        Completed
+                                                    </span>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -205,6 +215,24 @@ export default function CourseShow({ course, isEnrolled, completedAt, missingPre
                                     </div>
                                 )}
 
+                                {!isEnrolled && !canEnroll && prerequisites.length > 0 && (
+                                    <div className="mb-4 rounded-md border border-sidebar-border/70 bg-muted/20 p-3 text-sm">
+                                        <div className="mb-2 font-medium">Prerequisites required</div>
+                                        <div className="space-y-1 text-xs text-muted-foreground">
+                                            {prerequisites
+                                                .filter((p) => missingSet.has(p.id))
+                                                .map((p) => (
+                                                    <div key={p.id} className="flex items-center justify-between gap-2">
+                                                        <Link className="hover:underline" href={coursesRoutes.show(p.slug).url}>
+                                                            {p.title}
+                                                        </Link>
+                                                        <Badge variant="secondary">Missing</Badge>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {isEnrolled ? (
                                     <div className="space-y-3">
                                         <Button className="w-full" size="lg" asChild disabled={!continueContentId && !firstContentId}>
@@ -228,6 +256,19 @@ export default function CourseShow({ course, isEnrolled, completedAt, missingPre
                                                 </a>
                                             </Button>
                                         )}
+
+                                        {progress ? (
+                                            <div className="rounded-lg border border-sidebar-border/70 p-4">
+                                                <div className="mb-2 flex items-center justify-between">
+                                                    <div className="text-sm font-medium">Progress</div>
+                                                    <div className="text-sm text-muted-foreground">{progress.percent}%</div>
+                                                </div>
+                                                <Progress value={progress.percent} className="h-2" />
+                                                <div className="mt-2 text-xs text-muted-foreground">
+                                                    {progress.completed} / {progress.total} lessons completed
+                                                </div>
+                                            </div>
+                                        ) : null}
                                     </div>
                                 ) : (
                                     <Button 

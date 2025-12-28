@@ -40,4 +40,13 @@ class CertificateController extends Controller
             ],
         ]);
     }
+
+    public function show(Certificate $certificate): \Inertia\Response
+    {
+        $certificate->load(['user:id,name,email', 'course:id,title,slug']);
+
+        return \Inertia\Inertia::render('admin/certificates/show', [
+            'certificate' => $certificate,
+        ]);
+    }
 }

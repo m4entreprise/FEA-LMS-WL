@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 
+use App\Models\Certificate;
+use App\Models\Course;
 use App\Models\UserProgress;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -61,11 +63,73 @@ class DashboardController extends Controller
                 'image_path' => $course->image_path,
                 'progress' => $progress,
                 'total_contents' => $totalContents,
+                'completed_at' => optional($course->pivot?->completed_at)->toISOString(),
             ];
         });
 
+        $completedCourses = $user->courses()
+            ->whereNotNull('course_user.completed_at')
+            ->get(['courses.id', 'courses.title', 'courses.slug']);
+
+        $certificatesByCourse = Certificate::where('user_id', $user->id)
+            ->whereIn('course_id', $completedCourses->pluck('id'))
+            ->get(['uuid', 'certificate_number', 'issued_at', 'course_id'])
+            ->keyBy('course_id');
+
+        $completedCoursesPayload = $completedCourses
+            ->map(function ($course) use ($certificatesByCourse) {
+                $cert = $certificatesByCourse->get($course->id);
+
+                return [
+                    'id' => $course->id,
+                    'title' => $course->title,
+                    'slug' => $course->slug,
+                    'completed_at' => optional($course->pivot?->completed_at)->toISOString(),
+                    'certificate' => $cert ? [
+                        'uuid' => $cert->uuid,
+                        'certificate_number' => $cert->certificate_number,
+                        'issued_at' => optional($cert->issued_at)->toISOString(),
+                    ] : null,
+                ];
+            })
+            ->values();
+
+        $certificates = Certificate::query()
+            ->where('user_id', $user->id)
+            ->with(['course:id,title,slug'])
+            ->orderByDesc('issued_at')
+            ->limit(10)
+            ->get()
+            ->map(function (Certificate $certificate) {
+                return [
+                    'uuid' => $certificate->uuid,
+                    'certificate_number' => $certificate->certificate_number,
+                    'issued_at' => optional($certificate->issued_at)->toISOString(),
+                    'course' => $certificate->course
+                        ? [
+                            'title' => $certificate->course->title,
+                            'slug' => $certificate->course->slug,
+                        ]
+                        : null,
+                ];
+            })
+            ->values();
+
+        $recommendedCourses = Course::query()
+            ->where('is_published', true)
+            ->whereDoesntHave('students', function ($q) use ($user) {
+                $q->where('users.id', $user->id);
+            })
+            ->withCount('modules')
+            ->orderBy('title')
+            ->limit(6)
+            ->get(['id', 'title', 'slug', 'description', 'category', 'estimated_duration']);
+
         return Inertia::render('dashboard', [
             'enrolledCourses' => $courses,
+            'completedCourses' => $completedCoursesPayload,
+            'certificates' => $certificates,
+            'recommendedCourses' => $recommendedCourses,
             'stats' => [
                 'total_courses' => $totalCoursesCount,
                 'completed_courses' => $completedCoursesCount,

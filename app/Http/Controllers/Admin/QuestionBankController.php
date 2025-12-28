@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
 use App\Models\Question;
 use App\Models\Quiz;
 use Illuminate\Http\Request;
@@ -12,9 +13,21 @@ class QuestionBankController extends Controller
     public function index(Request $request): \Inertia\Response
     {
         $q = trim((string) $request->query('q', ''));
+        $type = trim((string) $request->query('type', ''));
+        $courseId = trim((string) $request->query('course', ''));
 
         $questionsQuery = Question::query()
             ->with(['options', 'quiz.content.module.course']);
+
+        if ($type !== '') {
+            $questionsQuery->where('type', $type);
+        }
+
+        if ($courseId !== '') {
+            $questionsQuery->whereHas('quiz.content.module.course', function ($courseQuery) use ($courseId) {
+                $courseQuery->where('id', (int) $courseId);
+            });
+        }
 
         if ($q !== '') {
             $questionsQuery->where(function ($query) use ($q) {
@@ -41,11 +54,19 @@ class QuestionBankController extends Controller
             ->limit(200)
             ->get();
 
+        $courses = Course::query()
+            ->select(['id', 'title'])
+            ->orderBy('title')
+            ->get();
+
         return \Inertia\Inertia::render('admin/question-bank/index', [
             'questions' => $questions,
             'quizzes' => $quizzes,
+            'courses' => $courses,
             'filters' => [
                 'q' => $q,
+                'type' => $type,
+                'course' => $courseId,
             ],
         ]);
     }

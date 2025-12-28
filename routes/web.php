@@ -46,6 +46,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('reports/enrollments.csv', [\App\Http\Controllers\Admin\ReportController::class, 'enrollmentsCsv'])->name('reports.enrollments.csv');
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
     Route::get('certificates', [\App\Http\Controllers\Admin\CertificateController::class, 'index'])->name('certificates.index');
+    Route::get('certificates/{certificate}', [\App\Http\Controllers\Admin\CertificateController::class, 'show'])->name('certificates.show');
     Route::get('question-bank', [\App\Http\Controllers\Admin\QuestionBankController::class, 'index'])->name('question-bank.index');
     Route::post('question-bank/copy', [\App\Http\Controllers\Admin\QuestionBankController::class, 'copy'])->name('question-bank.copy');
     Route::resource('courses', \App\Http\Controllers\Admin\CourseController::class);

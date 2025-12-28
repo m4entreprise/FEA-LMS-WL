@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -26,6 +28,46 @@ class AdminDashboardController extends Controller
         $totalEnrollments = DB::table('course_user')->count();
         $completedEnrollments = DB::table('course_user')->whereNotNull('completed_at')->count();
 
+        $completionRate = $totalEnrollments > 0
+            ? round(($completedEnrollments / $totalEnrollments) * 100, 1)
+            : 0;
+
+        $certificatesIssued = Certificate::count();
+
+        $startDate = Carbon::today()->subDays(13)->startOfDay();
+
+        $enrollmentsByDay = DB::table('course_user')
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
+            ->where('created_at', '>=', $startDate)
+            ->groupBy('date')
+            ->pluck('count', 'date');
+
+        $completionsByDay = DB::table('course_user')
+            ->selectRaw('DATE(completed_at) as date, COUNT(*) as count')
+            ->whereNotNull('completed_at')
+            ->where('completed_at', '>=', $startDate)
+            ->groupBy('date')
+            ->pluck('count', 'date');
+
+        $certificatesByDay = Certificate::query()
+            ->selectRaw('DATE(issued_at) as date, COUNT(*) as count')
+            ->where('issued_at', '>=', $startDate)
+            ->groupBy('date')
+            ->pluck('count', 'date');
+
+        $series = collect(range(0, 13))
+            ->map(function ($i) use ($startDate, $enrollmentsByDay, $completionsByDay, $certificatesByDay) {
+                $date = $startDate->copy()->addDays($i)->toDateString();
+
+                return [
+                    'date' => $date,
+                    'enrollments' => (int) ($enrollmentsByDay[$date] ?? 0),
+                    'completions' => (int) ($completionsByDay[$date] ?? 0),
+                    'certificates' => (int) ($certificatesByDay[$date] ?? 0),
+                ];
+            })
+            ->values();
+
         // Recent Users
         $recentUsers = User::latest()->take(5)->get();
 
@@ -46,7 +88,10 @@ class AdminDashboardController extends Controller
                 'total_courses' => $totalCourses,
                 'total_enrollments' => $totalEnrollments,
                 'completed_enrollments' => $completedEnrollments,
+                'completion_rate' => $completionRate,
+                'certificates_issued' => $certificatesIssued,
             ],
+            'series' => $series,
             'recentUsers' => $recentUsers,
             'recentEnrollments' => $recentEnrollments,
         ]);

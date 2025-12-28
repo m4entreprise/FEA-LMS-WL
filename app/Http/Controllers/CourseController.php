@@ -165,11 +165,26 @@ class CourseController extends Controller
         $user = Auth::user();
 
         $continueContentId = $firstContentId;
+        $progressSummary = [
+            'percent' => 0,
+            'completed' => 0,
+            'total' => $orderedContents->count(),
+        ];
+
         if ($user && $enrollment && $firstContentId) {
             $completedContentIds = UserProgress::where('user_id', $user->id)
                 ->whereIn('content_id', $orderedContents->pluck('id'))
                 ->pluck('content_id')
                 ->all();
+
+            $completedCount = count($completedContentIds);
+            $totalCount = $orderedContents->count();
+
+            $progressSummary = [
+                'percent' => $totalCount > 0 ? (int) round(($completedCount / $totalCount) * 100) : 0,
+                'completed' => $completedCount,
+                'total' => $totalCount,
+            ];
 
             $continueContentId = $orderedContents
                 ->first(fn ($c) => ! in_array($c->id, $completedContentIds, true))
@@ -197,6 +212,7 @@ class CourseController extends Controller
             'missingPrerequisiteIds' => $missingPrerequisiteIds,
             'firstContentId' => $firstContentId,
             'continueContentId' => $continueContentId,
+            'progress' => $progressSummary,
         ]);
     }
 }

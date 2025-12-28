@@ -104,6 +104,9 @@ export default function CertificatesIndex({ certificates, filters }: Props) {
                                     <td className="px-6 py-4 text-muted-foreground">{new Date(c.issued_at).toLocaleString()}</td>
                                     <td className="px-6 py-4 text-right">
                                         <Button size="sm" variant="ghost" asChild>
+                                            <Link href={adminCertificatesRoutes.show(c.id).url}>View</Link>
+                                        </Button>
+                                        <Button size="sm" variant="ghost" asChild>
                                             <Link href={`/certificates/verify/${c.uuid}`}>Verify</Link>
                                         </Button>
                                     </td>
