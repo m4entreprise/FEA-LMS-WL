@@ -24,10 +24,10 @@ Conventions:
 - [ ] “Mobile navigation” (drawer + comportement cohérent sur toutes les pages)
 
 ### 0.3 Comportements UX transverses
-- [ ] Système de notifications (success/error) global (toast + mapping erreurs validation)
+- [x] Système de notifications (success/error) global (toast + mapping erreurs validation) (actuellement: flash messages inline via Alert)
 - [ ] États de chargement cohérents (boutons, pages)
 - [ ] “Empty states” cohérents (catalogue vide, cours sans modules, etc.)
-- [ ] Gestion des erreurs 403/404/500 côté Inertia (pages dédiées)
+- [x] Gestion des erreurs 403/404/500 côté Inertia (pages dédiées)
 
 ### 0.4 White‑label (M4 LMS) — theming/branding par client
 - [ ] Système de “Brand Pack” (logo, favicon, couleurs, typographies, textes)
@@ -86,8 +86,8 @@ Conventions:
 - [x] Player leçon `courses/lesson`
 
 ### 3.2bis Student navigation
-- [ ] “My Certificates” (page dédiée) (optionnel mais recommandé)
-- [ ] “My Profile” entrée claire (settings)
+- [x] “My Certificates” (page dédiée) (optionnel mais recommandé)
+- [x] “My Profile” entrée claire (settings)
 
 ### 3.3 Sections/Composants pour pages cours
 - [ ] Catalogue:
@@ -95,13 +95,13 @@ Conventions:
   - [ ] Recherche
   - [ ] Pagination
 - [ ] Page cours:
-  - [ ] Module list: bouton Start pointe vers la 1ère leçon (actuellement placeholder)
+  - [x] Module list: bouton Start pointe vers la 1ère leçon (actuellement placeholder)
   - [ ] Bloc progression (pour enrolled)
   - [ ] Bloc prérequis (déjà affiché) → UX plus claire + lien vers cours prérequis
 - [ ] Player leçon:
-  - [ ] Navigation “Previous / Next lesson” réelle (actuellement placeholders)
+  - [x] Navigation “Previous / Next lesson” réelle (actuellement placeholders)
   - [ ] Indication progression globale + “Mark as complete” feedback (toast)
-  - [ ] Téléchargement docs / vidéo / SCORM: UX uniforme
+  - [x] Téléchargement docs / vidéo / SCORM: UX uniforme
 
 ### 3.4 Quiz (student)
 - [x] Quiz player (dans lesson)
@@ -109,8 +109,8 @@ Conventions:
 - [ ] Historique tentatives (si attempts existent)
 
 ### 3.5 Certificats (student)
-- [ ] Lien “Download certificate” visible depuis un endroit central (dashboard/certificates)
-- [ ] Page “Mes certificats” (liste, download, lien verify)
+- [x] Lien “Download certificate” visible depuis un endroit central (dashboard/certificates)
+- [x] Page “Mes certificats” (liste, download, lien verify)
 
 ---
 
@@ -182,7 +182,7 @@ Conventions:
 
 - [x] Breadcrumbs
 - [x] Sidebar / NavMain / NavUser
-- [ ] Toast/notifications
+- [x] Toast/notifications
 - [ ] Confirm dialogs uniformisés (delete, destructive actions)
 - [ ] Data table component (tri/pagination) pour admin (users, certificates)
 - [ ] Search input component (avec debounce)

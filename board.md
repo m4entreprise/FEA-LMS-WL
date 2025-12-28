@@ -46,7 +46,7 @@
 - [x] 6.5 History & Verification (Admin)
 
 ### 7. UI/UX
-- [ ] 7.1 General UX
+- [x] 7.1 General UX
 - [ ] 7.2 Role-based Dashboards
 - [ ] 7.3 Responsive Design
 - [ ] 7.4 Branding
