@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import AppLayout from '@/layouts/app-layout';
 import * as usersRoutes from '@/routes/admin/users';
+import * as certificatesRoutes from '@/routes/certificates';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { ChevronLeft, CheckCircle } from 'lucide-react';
@@ -35,13 +36,21 @@ interface ActivityItem {
     type: string;
 }
 
+interface Certificate {
+    uuid: string;
+    certificate_number: string;
+    issued_at: string | null;
+    course: { title: string; slug: string } | null;
+}
+
 interface Props {
     user: User;
     enrolledCourses: EnrolledCourse[];
     recentActivity: ActivityItem[];
+    certificates: Certificate[];
 }
 
-export default function UserShow({ user, enrolledCourses, recentActivity }: Props) {
+export default function UserShow({ user, enrolledCourses, recentActivity, certificates }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'User Management',
@@ -109,6 +118,59 @@ export default function UserShow({ user, enrolledCourses, recentActivity }: Prop
                                                         Completed: {new Date(course.completed_at).toLocaleDateString()}
                                                     </span>
                                                 )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card className="md:col-span-2">
+                        <CardHeader>
+                            <CardTitle>Certificates</CardTitle>
+                            <CardDescription>Certificates issued for this user.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {certificates.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">No certificates issued.</p>
+                            ) : (
+                                <div className="space-y-4">
+                                    {certificates.map((c) => (
+                                        <div
+                                            key={c.uuid}
+                                            className="flex flex-col gap-2 rounded-lg border border-sidebar-border/70 p-4 md:flex-row md:items-center md:justify-between"
+                                        >
+                                            <div className="space-y-1">
+                                                <div className="text-sm font-medium">
+                                                    {c.course?.title ?? 'Course'}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    Certificate #: <span className="font-mono">{c.certificate_number}</span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    Issued:{' '}
+                                                    {c.issued_at ? new Date(c.issued_at).toLocaleDateString() : '—'}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    Verify ID: <span className="font-mono">{c.uuid}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                {c.course?.slug ? (
+                                                    <Button variant="secondary" size="sm" asChild>
+                                                        <a href={certificatesRoutes.download(c.course.slug).url}>
+                                                            Download PDF
+                                                        </a>
+                                                    </Button>
+                                                ) : null}
+
+                                                <Button variant="outline" size="sm" asChild>
+                                                    <a href={certificatesRoutes.verify(c.uuid).url} target="_blank" rel="noreferrer">
+                                                        Verify
+                                                    </a>
+                                                </Button>
                                             </div>
                                         </div>
                                     ))}

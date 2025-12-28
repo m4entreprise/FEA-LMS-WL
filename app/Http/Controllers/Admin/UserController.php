@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\Certificate;
 
 class UserController extends Controller
 {
@@ -96,10 +97,30 @@ class UserController extends Controller
                 ];
             });
 
+        $certificates = Certificate::query()
+            ->where('user_id', $user->id)
+            ->with(['course:id,title,slug'])
+            ->orderByDesc('issued_at')
+            ->get()
+            ->map(function (Certificate $certificate) {
+                return [
+                    'uuid' => $certificate->uuid,
+                    'certificate_number' => $certificate->certificate_number,
+                    'issued_at' => $certificate->issued_at?->toISOString(),
+                    'course' => $certificate->course
+                        ? [
+                            'title' => $certificate->course->title,
+                            'slug' => $certificate->course->slug,
+                        ]
+                        : null,
+                ];
+            });
+
         return \Inertia\Inertia::render('admin/users/show', [
             'user' => $user,
             'enrolledCourses' => $enrolledCourses,
             'recentActivity' => $recentActivity,
+            'certificates' => $certificates,
         ]);
     }
 

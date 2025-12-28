@@ -91,16 +91,16 @@ Conventions:
 
 ### 3.3 Sections/Composants pour pages cours
 - [ ] Catalogue:
-  - [ ] Filtres (catégorie, durée, statut)
-  - [ ] Recherche
-  - [ ] Pagination
+  - [x] Filtres (catégorie, durée, statut)
+  - [x] Recherche
+  - [x] Pagination
 - [ ] Page cours:
   - [x] Module list: bouton Start pointe vers la 1ère leçon (actuellement placeholder)
   - [ ] Bloc progression (pour enrolled)
   - [ ] Bloc prérequis (déjà affiché) → UX plus claire + lien vers cours prérequis
 - [ ] Player leçon:
   - [x] Navigation “Previous / Next lesson” réelle (actuellement placeholders)
-  - [ ] Indication progression globale + “Mark as complete” feedback (toast)
+  - [x] Indication progression globale + “Mark as complete” feedback (toast)
   - [x] Téléchargement docs / vidéo / SCORM: UX uniforme
 
 ### 3.4 Quiz (student)
@@ -152,7 +152,7 @@ Conventions:
 - [x] Liste users
 - [x] Create/edit user
 - [x] Détail user: inscriptions + progression + activité
-- [ ] Détail user: certificats (liste + lien verify) (complément)
+- [x] Détail user: certificats (liste + lien verify) (complément)
 
 ### 4.6 Certificates (admin)
 - [x] Liste certificats + recherche

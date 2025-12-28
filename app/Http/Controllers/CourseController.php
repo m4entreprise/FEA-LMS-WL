@@ -5,18 +5,98 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\UserProgress;
+use App\Models\Course;
 
 class CourseController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(): \Inertia\Response
+    public function index(Request $request): \Inertia\Response
     {
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+
+        $search = $request->string('q')->trim()->toString();
+        $category = $request->string('category')->trim()->toString();
+        $duration = $request->string('duration')->trim()->toString();
+        $status = $request->string('status')->trim()->toString();
+
+        $query = Course::query()
+            ->where('is_published', true)
+            ->withCount('modules')
+            ->orderBy('title');
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($category !== '') {
+            $query->where('category', $category);
+        }
+
+        if ($duration !== '') {
+            if ($duration === '0-30') {
+                $query->whereNotNull('estimated_duration')->where('estimated_duration', '<=', 30);
+            }
+
+            if ($duration === '30-60') {
+                $query->whereNotNull('estimated_duration')->whereBetween('estimated_duration', [30, 60]);
+            }
+
+            if ($duration === '60+') {
+                $query->whereNotNull('estimated_duration')->where('estimated_duration', '>=', 60);
+            }
+        }
+
+        if ($user) {
+            if ($status === 'enrolled') {
+                $query->whereHas('students', function ($q) use ($user) {
+                    $q->where('users.id', $user->id);
+                });
+            }
+
+            if ($status === 'completed') {
+                $query->whereHas('students', function ($q) use ($user) {
+                    $q->where('users.id', $user->id)->whereNotNull('course_user.completed_at');
+                });
+            }
+
+            if ($status === 'available') {
+                $query->whereDoesntHave('students', function ($q) use ($user) {
+                    $q->where('users.id', $user->id);
+                });
+            }
+
+            $query->withExists([
+                'students as is_enrolled' => function ($q) use ($user) {
+                    $q->where('users.id', $user->id);
+                },
+                'students as is_completed' => function ($q) use ($user) {
+                    $q->where('users.id', $user->id)->whereNotNull('course_user.completed_at');
+                },
+            ]);
+        }
+
+        $categories = Course::where('is_published', true)
+            ->whereNotNull('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category')
+            ->values();
+
         return \Inertia\Inertia::render('courses/index', [
-            'courses' => \App\Models\Course::where('is_published', true)
-                ->withCount('modules')
-                ->get(),
+            'courses' => $query->paginate(9)->withQueryString(),
+            'categories' => $categories,
+            'filters' => [
+                'q' => $search,
+                'category' => $category,
+                'duration' => $duration,
+                'status' => $status,
+            ],
         ]);
     }
 
