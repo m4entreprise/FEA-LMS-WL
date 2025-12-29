@@ -57,10 +57,12 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function QuestionBankIndex({ questions, quizzes, courses, filters }: Props) {
+    const allValue = '__all__';
     const [q, setQ] = useState(filters.q ?? '');
     const [targetQuizId, setTargetQuizId] = useState<string>('');
     const [type, setType] = useState(filters.type ?? '');
     const [courseId, setCourseId] = useState(filters.course ?? '');
+    const [isLoading, setIsLoading] = useState(false);
 
     const targetQuiz = useMemo(() => quizzes.find((z) => String(z.id) === targetQuizId) ?? null, [quizzes, targetQuizId]);
 
@@ -75,7 +77,7 @@ export default function QuestionBankIndex({ questions, quizzes, courses, filters
                 },
             }).url,
             {},
-            { preserveScroll: true },
+            { preserveScroll: true, onStart: () => setIsLoading(true), onFinish: () => setIsLoading(false) },
         );
     };
 
@@ -83,7 +85,7 @@ export default function QuestionBankIndex({ questions, quizzes, courses, filters
         setQ('');
         setType('');
         setCourseId('');
-        router.get(questionBankRoutes.index().url);
+        router.get(questionBankRoutes.index().url, {}, { onStart: () => setIsLoading(true), onFinish: () => setIsLoading(false) });
     };
 
     const copyToQuiz = (questionId: number) => {
@@ -91,7 +93,7 @@ export default function QuestionBankIndex({ questions, quizzes, courses, filters
         router.post(
             questionBankRoutes.copy().url,
             { question_id: questionId, quiz_id: Number(targetQuizId) },
-            { preserveScroll: true }
+            { preserveScroll: true, onStart: () => setIsLoading(true), onFinish: () => setIsLoading(false) }
         );
     };
 
@@ -115,17 +117,18 @@ export default function QuestionBankIndex({ questions, quizzes, courses, filters
                             value={q}
                             onChange={(e) => setQ(e.target.value)}
                             placeholder="Search by question text, course, or quiz title…"
+                            disabled={isLoading}
                         />
                     </div>
 
                     <div>
                         <Label>Type</Label>
-                        <Select value={type} onValueChange={setType}>
+                        <Select value={type} onValueChange={(v) => setType(v === allValue ? '' : v)} disabled={isLoading}>
                             <SelectTrigger>
                                 <SelectValue placeholder="All types" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All</SelectItem>
+                                <SelectItem value={allValue}>All</SelectItem>
                                 <SelectItem value="mcq">MCQ</SelectItem>
                                 <SelectItem value="true_false">TF</SelectItem>
                                 <SelectItem value="short_answer">Short</SelectItem>
@@ -135,12 +138,12 @@ export default function QuestionBankIndex({ questions, quizzes, courses, filters
 
                     <div>
                         <Label>Course</Label>
-                        <Select value={courseId} onValueChange={setCourseId}>
+                        <Select value={courseId} onValueChange={(v) => setCourseId(v === allValue ? '' : v)} disabled={isLoading}>
                             <SelectTrigger>
                                 <SelectValue placeholder="All courses" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All</SelectItem>
+                                <SelectItem value={allValue}>All</SelectItem>
                                 {courses.map((c) => (
                                     <SelectItem key={c.id} value={String(c.id)}>
                                         {c.title}
@@ -151,7 +154,7 @@ export default function QuestionBankIndex({ questions, quizzes, courses, filters
                     </div>
                     <div>
                         <Label>Target quiz</Label>
-                        <Select value={targetQuizId} onValueChange={setTargetQuizId}>
+                        <Select value={targetQuizId} onValueChange={setTargetQuizId} disabled={isLoading}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select a quiz" />
                             </SelectTrigger>
@@ -166,8 +169,8 @@ export default function QuestionBankIndex({ questions, quizzes, courses, filters
                     </div>
 
                     <div className="flex items-center gap-2 md:col-span-4">
-                        <Button type="submit">Search</Button>
-                        <Button type="button" variant="outline" onClick={reset}>
+                        <Button type="submit" disabled={isLoading}>Search</Button>
+                        <Button type="button" variant="outline" onClick={reset} disabled={isLoading}>
                             Reset
                         </Button>
                         {targetQuiz && (
@@ -178,15 +181,15 @@ export default function QuestionBankIndex({ questions, quizzes, courses, filters
                     </div>
                 </form>
 
-                <div className="overflow-hidden rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
-                    <table className="w-full text-left text-sm">
+                <div className="overflow-x-auto rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
+                    <table className="min-w-[1000px] w-full text-left text-sm">
                         <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
                             <tr>
                                 <th className="px-6 py-3 font-medium">Question</th>
                                 <th className="px-6 py-3 font-medium">Type</th>
                                 <th className="px-6 py-3 font-medium">Points</th>
                                 <th className="px-6 py-3 font-medium">Source</th>
-                                <th className="px-6 py-3 font-medium text-right">Actions</th>
+                                <th className="px-6 py-3 font-medium text-right whitespace-nowrap">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
@@ -225,8 +228,8 @@ export default function QuestionBankIndex({ questions, quizzes, courses, filters
                                         </div>
                                         <div className="text-xs text-muted-foreground">{question.quiz.content.title}</div>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Button size="sm" onClick={() => copyToQuiz(question.id)} disabled={!targetQuizId}>
+                                    <td className="px-6 py-4 text-right whitespace-nowrap">
+                                        <Button size="sm" onClick={() => copyToQuiz(question.id)} disabled={!targetQuizId || isLoading}>
                                             Copy to Quiz
                                         </Button>
                                     </td>

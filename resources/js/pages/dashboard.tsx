@@ -211,9 +211,18 @@ export default function Dashboard({ enrolledCourses = [], completedCourses = [],
                         </div>
 
                         {completedCourses.length === 0 ? (
-                            <Card>
-                                <CardContent className="p-6 text-sm text-muted-foreground">No completed courses yet.</CardContent>
-                            </Card>
+                            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-10 text-center">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                                    <Award className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                                <h3 className="mt-4 text-lg font-semibold">No completed courses yet</h3>
+                                <p className="mb-4 mt-2 text-sm text-muted-foreground">
+                                    Finish a course to unlock a certificate and see it here.
+                                </p>
+                                <Button asChild variant="secondary">
+                                    <Link href={coursesRoutes.index().url}>Browse courses</Link>
+                                </Button>
+                            </div>
                         ) : (
                             <div className="grid gap-6 sm:grid-cols-2">
                                 {completedCourses.slice(0, 4).map((course) => (

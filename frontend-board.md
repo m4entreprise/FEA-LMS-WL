@@ -14,27 +14,27 @@ Conventions:
 - [x] App layout authentifié (sidebar + header + breadcrumbs)
 - [x] Layout settings (sous-navigation settings)
 - [x] Layout auth pages (login/register/etc.)
-- [ ] Layout public “simple” (pour pages publiques autres que welcome: ex. vérification certificat)
+- [x] Layout public “simple” (pour pages publiques autres que welcome: ex. vérification certificat)
 
 ### 0.2 Menus / navigation
 - [x] Sidebar (liens Student + Admin conditionnels)
 - [x] Header (breadcrumbs, user menu, theme)
-- [ ] Footer applicatif (liens: CGU, confidentialité, support, version)
-- [ ] Liens “corporate” (remplacer/retirer liens starter-kit: Repository/Documentation)
-- [ ] “Mobile navigation” (drawer + comportement cohérent sur toutes les pages)
+- [x] Footer applicatif (liens: CGU, confidentialité, support, version)
+- [x] Liens “corporate” (remplacer/retirer liens starter-kit: Repository/Documentation)
+- [x] “Mobile navigation” (drawer + comportement cohérent sur toutes les pages)
 
 ### 0.3 Comportements UX transverses
 - [x] Système de notifications (success/error) global (toast + mapping erreurs validation) (actuellement: flash messages inline via Alert)
-- [ ] États de chargement cohérents (boutons, pages)
-- [ ] “Empty states” cohérents (catalogue vide, cours sans modules, etc.)
+- [x] États de chargement cohérents (boutons, pages)
+- [x] “Empty states” cohérents (catalogue vide, cours sans modules, etc.)
 - [x] Gestion des erreurs 403/404/500 côté Inertia (pages dédiées)
 
 ### 0.4 White‑label (M4 LMS) — theming/branding par client
-- [ ] Système de “Brand Pack” (logo, favicon, couleurs, typographies, textes)
-- [ ] Design tokens via CSS variables (primary/secondary, radius, etc.) + override par client
-- [ ] Gestion des assets brandés (logo header/sidebar, favicon, images)
-- [ ] “Liens footer” configurables par client (CGU, privacy, support)
-- [ ] i18n / textes paramétrables (au minimum FR/EN) (optionnel)
+- [x] Système de “Brand Pack” (logo, favicon, couleurs, typographies, textes)
+- [x] Design tokens via CSS variables (primary/secondary, radius, etc.) + override par client
+- [x] Gestion des assets brandés (logo header/sidebar, favicon, images)
+- [x] “Liens footer” configurables par client (CGU, privacy, support)
+- [x] i18n / textes paramétrables (au minimum FR/EN) (optionnel)
 
 ---
 
@@ -42,14 +42,15 @@ Conventions:
 
 ### 1.1 Landing / marketing
 - [x] Welcome (landing)
-- [ ] Landing “produit” M4 LMS (présentation, features, CTA)
-- [ ] Page “Support” / “Contact” (liens du footer)
+- [x] Landing “produit” M4 LMS (présentation, features, CTA)
+- [x] Page “Support” / “Contact” (liens du footer)
 
 ### 1.2 Vérification certificats (public)
 - [x] Page `certificates/verify/{uuid}`
-- [ ] UX: champ “entrer un ID de vérification” + bouton “Vérifier” (au lieu d’URL manuelle)
-- [ ] CTA: login / register si l’utilisateur veut accéder à ses cours
-- [ ] Affichage “copy link” (copier l’URL) + “print” (optionnel)
+- [x] Page `certificates/verify` (formulaire)
+- [x] UX: champ “entrer un ID de vérification” + bouton “Vérifier” (au lieu d’URL manuelle)
+- [x] CTA: login / register si l’utilisateur veut accéder à ses cours
+- [x] Affichage “copy link” (copier l’URL) + “print” (optionnel)
 
 ---
 
@@ -183,7 +184,7 @@ Conventions:
 - [x] Breadcrumbs
 - [x] Sidebar / NavMain / NavUser
 - [x] Toast/notifications
-- [ ] Confirm dialogs uniformisés (delete, destructive actions)
+- [x] Confirm dialogs uniformisés (delete, destructive actions)
 - [ ] Data table component (tri/pagination) pour admin (users, certificates)
 - [ ] Search input component (avec debounce)
 - [ ] “RoleGate” helper (composant/guard UI) pour afficher/masquer sections selon rôle
@@ -193,17 +194,17 @@ Conventions:
 ## 7. Responsive / Accessibilité / Qualité
 
 ### 7.1 Responsive
-- [ ] Sidebar: comportement mobile stable (open/close, overlay)
-- [ ] Tables admin: responsive (scroll horizontal, cartes)
-- [ ] Lesson player: sidebar modules responsive
+- [x] Sidebar: comportement mobile stable (open/close, overlay)
+- [x] Tables admin: responsive (scroll horizontal, cartes)
+- [x] Lesson player: sidebar modules responsive
 
 ### 7.2 Accessibilité
-- [ ] Focus states, keyboard navigation
-- [ ] ARIA labels pour menus, dialogs
+- [x] Focus states, keyboard navigation
+- [x] ARIA labels pour menus, dialogs
 
 ### 7.3 Cohérence visuelle
-- [ ] Typo, spacing, couleurs, variants boutons
-- [ ] Dark mode QA
+- [x] Typo, spacing, couleurs, variants boutons
+- [x] Dark mode QA
 
 ---
 
@@ -211,9 +212,9 @@ Conventions:
 
 - [x] Logo (existant)
 - [x] Nom produit: M4 LMS
-- [ ] Tagline (optionnel)
-- [ ] Favicon + social preview (par client)
-- [ ] Palette de couleurs (primary/secondary) (par client)
+- [x] Tagline (optionnel)
+- [x] Favicon + social preview (par client)
+- [x] Palette de couleurs (primary/secondary) (par client)
 
 ---
 

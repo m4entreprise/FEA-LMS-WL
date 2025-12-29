@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import * as coursesRoutes from '@/routes/admin/courses';
 import * as modulesRoutes from '@/routes/admin/courses/modules';
@@ -41,6 +43,8 @@ interface Course {
     category: string | null;
     estimated_duration: number | null;
     is_published: boolean;
+    certificate_title?: string | null;
+    certificate_body?: string | null;
     modules: Module[];
     prerequisites?: { id: number; title: string }[];
 }
@@ -59,6 +63,18 @@ export default function CourseEdit({ course, allCourses }: Props) {
     const isEditing = !!course;
     const [newModuleTitle, setNewModuleTitle] = useState('');
     const [isAddingModule, setIsAddingModule] = useState(false);
+    const [isSavingModule, setIsSavingModule] = useState(false);
+    const [moduleDeleteOpen, setModuleDeleteOpen] = useState(false);
+    const [moduleIdToDelete, setModuleIdToDelete] = useState<number | null>(null);
+    const [isDeletingModule, setIsDeletingModule] = useState(false);
+    const [contentDeleteOpen, setContentDeleteOpen] = useState(false);
+    const [contentIdToDelete, setContentIdToDelete] = useState<number | null>(null);
+    const [isDeletingContent, setIsDeletingContent] = useState(false);
+    const [addContentOpen, setAddContentOpen] = useState(false);
+    const [addContentModuleId, setAddContentModuleId] = useState<number | null>(null);
+    const [addContentType, setAddContentType] = useState<Content['type']>('text');
+    const [addContentTitle, setAddContentTitle] = useState('');
+    const [isAddingContent, setIsAddingContent] = useState(false);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -77,6 +93,8 @@ export default function CourseEdit({ course, allCourses }: Props) {
         category: course?.category ?? '',
         estimated_duration: course?.estimated_duration ?? '',
         is_published: course?.is_published ?? false,
+        certificate_title: course?.certificate_title ?? '',
+        certificate_body: course?.certificate_body ?? '',
         prerequisite_ids: (course?.prerequisites ?? []).map((p) => p.id),
     });
 
@@ -89,10 +107,11 @@ export default function CourseEdit({ course, allCourses }: Props) {
         }
     };
 
-    const addModule = (e: React.FormEvent) => {
+    const addModule = (e: React.SyntheticEvent) => {
         e.preventDefault();
         if (!course) return;
-        
+        if (newModuleTitle.trim().length === 0) return;
+
         router.post(modulesRoutes.store(course.id).url, {
             title: newModuleTitle
         }, {
@@ -101,34 +120,46 @@ export default function CourseEdit({ course, allCourses }: Props) {
                 setIsAddingModule(false);
             },
             preserveScroll: true,
+            onStart: () => setIsSavingModule(true),
+            onFinish: () => setIsSavingModule(false),
         });
     };
 
     const deleteModule = (id: number) => {
-        if (confirm('Delete this module and all its content?')) {
-            router.delete(moduleItemRoutes.destroy(id).url, {
-                preserveScroll: true,
-            });
-        }
+        setModuleIdToDelete(id);
+        setModuleDeleteOpen(true);
     };
 
-    const addContent = (moduleId: number, type: Content['type']) => {
-        const title = prompt(`Enter ${type} title:`);
-        if (title) {
-            router.post(contentsRoutes.store(moduleId).url, {
-                title, type
-            }, {
+    const openAddContent = (moduleId: number, type: Content['type']) => {
+        if (isAddingContent) return;
+        setAddContentModuleId(moduleId);
+        setAddContentType(type);
+        setAddContentTitle('');
+        setAddContentOpen(true);
+    };
+
+    const submitAddContent = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (addContentModuleId === null) return;
+        const title = addContentTitle.trim();
+        if (title.length === 0) return;
+
+        router.post(
+            contentsRoutes.store(addContentModuleId).url,
+            { title, type: addContentType },
+            {
                 preserveScroll: true,
-            });
-        }
+                onStart: () => setIsAddingContent(true),
+                onFinish: () => setIsAddingContent(false),
+                onSuccess: () => setAddContentOpen(false),
+            },
+        );
     };
 
     const deleteContent = (id: number) => {
-        if (confirm('Delete this content?')) {
-            router.delete(contentItemRoutes.destroy(id).url, {
-                preserveScroll: true,
-            });
-        }
+        setContentIdToDelete(id);
+        setContentDeleteOpen(true);
     };
 
     const getContentIcon = (type: Content['type']) => {
@@ -148,7 +179,7 @@ export default function CourseEdit({ course, allCourses }: Props) {
             <div className="flex flex-col gap-6 p-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Button variant="outline" size="icon" asChild>
+                        <Button variant="outline" size="icon" asChild aria-label="Back to courses" title="Back to courses">
                             <Link href={coursesRoutes.index().url}>
                                 <ChevronLeft className="h-4 w-4" />
                             </Link>
@@ -190,6 +221,29 @@ export default function CourseEdit({ course, allCourses }: Props) {
                                         {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
                                     </div>
 
+                                    <div className="space-y-2">
+                                        <Label htmlFor="certificate_title">Certificate title</Label>
+                                        <Input
+                                            id="certificate_title"
+                                            value={data.certificate_title}
+                                            onChange={(e) => setData('certificate_title', e.target.value)}
+                                            placeholder="e.g. Certificate of Completion"
+                                        />
+                                        {errors.certificate_title && <p className="text-sm text-destructive">{errors.certificate_title}</p>}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="certificate_body">Certificate body</Label>
+                                        <Textarea
+                                            id="certificate_body"
+                                            value={data.certificate_body}
+                                            onChange={(e) => setData('certificate_body', e.target.value)}
+                                            placeholder="Short message printed on the certificate PDF"
+                                            rows={4}
+                                        />
+                                        {errors.certificate_body && <p className="text-sm text-destructive">{errors.certificate_body}</p>}
+                                    </div>
+
                                     <div className="grid gap-4 sm:grid-cols-2">
                                         <div className="space-y-2">
                                             <Label htmlFor="category">Category</Label>
@@ -229,7 +283,7 @@ export default function CourseEdit({ course, allCourses }: Props) {
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-xl font-semibold">Course Curriculum</h2>
                                     {!isAddingModule ? (
-                                        <Button size="sm" onClick={() => setIsAddingModule(true)}>
+                                        <Button size="sm" onClick={() => setIsAddingModule(true)} disabled={isSavingModule || isDeletingModule || isDeletingContent || isAddingContent}>
                                             <Plus className="mr-2 h-4 w-4" />
                                             Add Module
                                         </Button>
@@ -242,9 +296,13 @@ export default function CourseEdit({ course, allCourses }: Props) {
                                                 value={newModuleTitle}
                                                 onChange={e => setNewModuleTitle(e.target.value)}
                                                 onKeyDown={e => e.key === 'Enter' && addModule(e)}
+                                                disabled={isSavingModule}
                                             />
-                                            <Button size="sm" onClick={addModule}>Add</Button>
-                                            <Button size="sm" variant="ghost" onClick={() => setIsAddingModule(false)}>Cancel</Button>
+                                            <Button size="sm" onClick={addModule} disabled={isSavingModule || newModuleTitle.trim().length === 0}>
+                                                {isSavingModule && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                Add
+                                            </Button>
+                                            <Button size="sm" variant="ghost" onClick={() => setIsAddingModule(false)} disabled={isSavingModule}>Cancel</Button>
                                         </div>
                                     )}
                                 </div>
@@ -256,14 +314,22 @@ export default function CourseEdit({ course, allCourses }: Props) {
                                                 <div className="flex items-center justify-between bg-muted/30 px-4 py-2 border-b border-sidebar-border/70">
                                                     <div className="flex items-center gap-2">
                                                         <CollapsibleTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Toggle module" title="Toggle module">
                                                                 <ChevronDown className="h-4 w-4 transition-transform duration-200" />
                                                             </Button>
                                                         </CollapsibleTrigger>
                                                         <span className="font-medium">{module.title}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteModule(module.id)}>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-destructive"
+                                                            onClick={() => deleteModule(module.id)}
+                                                            disabled={isDeletingModule || isDeletingContent || isAddingContent || isSavingModule}
+                                                            aria-label="Delete module"
+                                                            title="Delete module"
+                                                        >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </div>
@@ -283,12 +349,20 @@ export default function CourseEdit({ course, allCourses }: Props) {
                                                                         </Badge>
                                                                     </div>
                                                                     <div className="flex items-center gap-1">
-                                                                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                                                                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild aria-label="Edit content" title="Edit content">
                                                                             <Link href={contentItemRoutes.edit(content.id).url}>
                                                                                 <ChevronLeft className="h-3 w-3 rotate-180" />
                                                                             </Link>
                                                                         </Button>
-                                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteContent(content.id)}>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-7 w-7 text-destructive"
+                                                                            onClick={() => deleteContent(content.id)}
+                                                                            disabled={isDeletingContent || isDeletingModule || isAddingContent || isSavingModule}
+                                                                            aria-label="Delete content"
+                                                                            title="Delete content"
+                                                                        >
                                                                             <Trash2 className="h-3 w-3" />
                                                                         </Button>
                                                                     </div>
@@ -296,16 +370,19 @@ export default function CourseEdit({ course, allCourses }: Props) {
                                                             ))}
                                                             <div className="p-4 flex items-center gap-2 flex-wrap bg-muted/10">
                                                                 <span className="text-xs text-muted-foreground font-medium uppercase mr-2">Add Content:</span>
-                                                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => addContent(module.id, 'text')}>
+                                                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddContent(module.id, 'text')} disabled={isAddingContent || isSavingModule || isDeletingModule || isDeletingContent}>
                                                                     <FileText className="mr-1 h-3 w-3" /> Text
                                                                 </Button>
-                                                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => addContent(module.id, 'video')}>
+                                                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddContent(module.id, 'video')} disabled={isAddingContent || isSavingModule || isDeletingModule || isDeletingContent}>
                                                                     <Video className="mr-1 h-3 w-3" /> Video
                                                                 </Button>
-                                                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => addContent(module.id, 'scorm')}>
+                                                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddContent(module.id, 'quiz')} disabled={isAddingContent || isSavingModule || isDeletingModule || isDeletingContent}>
+                                                                    <HelpCircle className="mr-1 h-3 w-3" /> Quiz
+                                                                </Button>
+                                                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddContent(module.id, 'scorm')} disabled={isAddingContent || isSavingModule || isDeletingModule || isDeletingContent}>
                                                                     <FileBox className="mr-1 h-3 w-3" /> SCORM
                                                                 </Button>
-                                                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => addContent(module.id, 'document')}>
+                                                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddContent(module.id, 'document')} disabled={isAddingContent || isSavingModule || isDeletingModule || isDeletingContent}>
                                                                     <File className="mr-1 h-3 w-3" /> Doc
                                                                 </Button>
                                                             </div>
@@ -388,6 +465,95 @@ export default function CourseEdit({ course, allCourses }: Props) {
                     </div>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={moduleDeleteOpen}
+                onOpenChange={(open) => {
+                    setModuleDeleteOpen(open);
+                    if (!open) {
+                        setModuleIdToDelete(null);
+                        setIsDeletingModule(false);
+                    }
+                }}
+                title="Delete module"
+                description="Delete this module and all its content?"
+                confirmText="Delete"
+                confirmVariant="destructive"
+                confirmDisabled={isDeletingModule}
+                onConfirm={() => {
+                    if (moduleIdToDelete === null) return;
+                    router.delete(moduleItemRoutes.destroy(moduleIdToDelete).url, {
+                        preserveScroll: true,
+                        onStart: () => setIsDeletingModule(true),
+                        onFinish: () => setIsDeletingModule(false),
+                    });
+                }}
+            />
+
+            <ConfirmDialog
+                open={contentDeleteOpen}
+                onOpenChange={(open) => {
+                    setContentDeleteOpen(open);
+                    if (!open) {
+                        setContentIdToDelete(null);
+                        setIsDeletingContent(false);
+                    }
+                }}
+                title="Delete content"
+                description="Delete this content?"
+                confirmText="Delete"
+                confirmVariant="destructive"
+                confirmDisabled={isDeletingContent}
+                onConfirm={() => {
+                    if (contentIdToDelete === null) return;
+                    router.delete(contentItemRoutes.destroy(contentIdToDelete).url, {
+                        preserveScroll: true,
+                        onStart: () => setIsDeletingContent(true),
+                        onFinish: () => setIsDeletingContent(false),
+                    });
+                }}
+            />
+
+            <Dialog
+                open={addContentOpen}
+                onOpenChange={(open) => {
+                    setAddContentOpen(open);
+                    if (!open) {
+                        setAddContentModuleId(null);
+                        setAddContentTitle('');
+                        setIsAddingContent(false);
+                    }
+                }}
+            >
+                <DialogContent>
+                    <form onSubmit={submitAddContent} className="space-y-4">
+                        <DialogHeader>
+                            <DialogTitle>Add {addContentType} content</DialogTitle>
+                        </DialogHeader>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="new-content-title">Title</Label>
+                            <Input
+                                id="new-content-title"
+                                value={addContentTitle}
+                                onChange={(e) => setAddContentTitle(e.target.value)}
+                                placeholder="e.g. Introduction"
+                                disabled={isAddingContent}
+                                autoFocus
+                            />
+                        </div>
+
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setAddContentOpen(false)} disabled={isAddingContent}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={isAddingContent || addContentTitle.trim().length === 0}>
+                                Create
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

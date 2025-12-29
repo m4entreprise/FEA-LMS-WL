@@ -1,4 +1,6 @@
 import AuthLayoutTemplate from '@/layouts/auth/auth-simple-layout';
+import { InertiaToastListener } from '@/components/inertia-toast-listener';
+import { Toaster } from '@/components/toaster';
 
 export default function AuthLayout({
     children,
@@ -12,6 +14,8 @@ export default function AuthLayout({
 }) {
     return (
         <AuthLayoutTemplate title={title} description={description} {...props}>
+            <InertiaToastListener />
+            <Toaster />
             {children}
         </AuthLayoutTemplate>
     );

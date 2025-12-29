@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Content;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
+use App\Models\UserProgress;
+use App\Services\CourseProgressService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class QuizAttemptController extends Controller
@@ -26,6 +30,11 @@ class QuizAttemptController extends Controller
 
     public function submit(Request $request, Quiz $quiz)
     {
+        $user = Auth::user();
+        if (! $user) {
+            abort(401);
+        }
+
         $validated = $request->validate([
             'answers' => 'required|array',
             'answers.*.question_id' => 'required|exists:questions,id',
@@ -41,7 +50,7 @@ class QuizAttemptController extends Controller
         DB::beginTransaction();
         try {
             $attempt = $quiz->attempts()->create([
-                'user_id' => auth()->id(),
+                'user_id' => $user->id,
                 'completed_at' => now(),
             ]);
 
@@ -95,6 +104,26 @@ class QuizAttemptController extends Controller
                 'score' => $score,
                 'passed' => $score >= (($quiz->passing_score / 100) * $totalPoints),
             ]);
+
+            $attempt->refresh();
+
+            if ($attempt->passed) {
+                $quiz->loadMissing('content.module.course');
+
+                /** @var Content|null $content */
+                $content = $quiz->content;
+                if ($content) {
+                    UserProgress::updateOrCreate(
+                        ['user_id' => $user->id, 'content_id' => $content->id],
+                        ['completed_at' => now()]
+                    );
+
+                    $course = $content->module?->course;
+                    if ($course) {
+                        app(CourseProgressService::class)->updateForUserAndCourse($user, $course);
+                    }
+                }
+            }
 
             DB::commit();
 

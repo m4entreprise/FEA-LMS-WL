@@ -49,7 +49,7 @@ export default function UserEdit({ user }: Props) {
 
             <div className="flex flex-col gap-6 p-6">
                 <div className="flex items-center gap-4">
-                    <Button variant="outline" size="icon" asChild>
+                    <Button variant="outline" size="icon" asChild aria-label="Back to users" title="Back to users">
                         <Link href={usersRoutes.index().url}>
                             <ChevronLeft className="h-4 w-4" />
                         </Link>
@@ -76,6 +76,7 @@ export default function UserEdit({ user }: Props) {
                                     onChange={(e) => setData('name', e.target.value)}
                                     placeholder="John Doe"
                                     required
+                                    disabled={processing}
                                 />
                                 {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                             </div>
@@ -89,6 +90,7 @@ export default function UserEdit({ user }: Props) {
                                     onChange={(e) => setData('email', e.target.value)}
                                     placeholder="john@example.com"
                                     required
+                                    disabled={processing}
                                 />
                                 {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                             </div>
@@ -104,6 +106,7 @@ export default function UserEdit({ user }: Props) {
                                     onChange={(e) => setData('password', e.target.value)}
                                     placeholder="••••••••"
                                     required={!isEditing}
+                                    disabled={processing}
                                 />
                                 {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                             </div>
@@ -113,6 +116,7 @@ export default function UserEdit({ user }: Props) {
                                 <Select 
                                     value={data.role as string} 
                                     onValueChange={(value) => setData('role', value)}
+                                    disabled={processing}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select a role" />

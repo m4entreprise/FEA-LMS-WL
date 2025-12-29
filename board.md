@@ -47,9 +47,9 @@
 
 ### 7. UI/UX
 - [x] 7.1 General UX
-- [ ] 7.2 Role-based Dashboards
-- [ ] 7.3 Responsive Design
-- [ ] 7.4 Branding
+- [x] 7.2 Role-based Dashboards
+- [x] 7.3 Responsive Design
+- [x] 7.4 Branding
 
 ## In Progress
 

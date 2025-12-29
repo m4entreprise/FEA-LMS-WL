@@ -34,6 +34,8 @@ export default function AppearanceToggleDropdown({
                         variant="ghost"
                         size="icon"
                         className="h-9 w-9 rounded-md"
+                        aria-label="Toggle theme"
+                        title="Toggle theme"
                     >
                         {getCurrentIcon()}
                         <span className="sr-only">Toggle theme</span>

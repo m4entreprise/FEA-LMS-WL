@@ -14,13 +14,15 @@ import { LogOut, Settings } from 'lucide-react';
 
 interface UserMenuContentProps {
     user: User;
+    onNavigate?: () => void;
 }
 
-export function UserMenuContent({ user }: UserMenuContentProps) {
+export function UserMenuContent({ user, onNavigate }: UserMenuContentProps) {
     const cleanup = useMobileNavigation();
 
     const handleLogout = () => {
         cleanup();
+        onNavigate?.();
         router.flushAll();
     };
 
@@ -39,7 +41,10 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         href={edit()}
                         as="button"
                         prefetch
-                        onClick={cleanup}
+                        onClick={() => {
+                            cleanup();
+                            onNavigate?.();
+                        }}
                     >
                         <Settings className="mr-2" />
                         Settings

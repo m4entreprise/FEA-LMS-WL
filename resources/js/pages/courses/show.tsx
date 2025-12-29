@@ -8,7 +8,7 @@ import * as coursesRoutes from '@/routes/courses';
 import * as lessonsRoutes from '@/routes/lessons';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, Link, usePage } from '@inertiajs/react';
-import { ChevronLeft, ChevronDown, FileText, Video, HelpCircle, FileBox, File, CheckCircle, Lock, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronDown, FileText, Video, HelpCircle, FileBox, File, CheckCircle, Lock, XCircle, Loader2 } from 'lucide-react';
 
 interface Content {
     id: number;
@@ -37,13 +37,14 @@ interface Props {
     course: Course;
     isEnrolled: boolean;
     completedAt?: string | null;
+    unlockedContentIds?: number[];
     missingPrerequisiteIds?: number[];
     firstContentId?: number | null;
     continueContentId?: number | null;
     progress?: { percent: number; completed: number; total: number };
 }
 
-export default function CourseShow({ course, isEnrolled, completedAt, missingPrerequisiteIds = [], firstContentId = null, continueContentId = null, progress }: Props) {
+export default function CourseShow({ course, isEnrolled, completedAt, unlockedContentIds = [], missingPrerequisiteIds = [], firstContentId = null, continueContentId = null, progress }: Props) {
     const page = usePage<{ errors?: Record<string, string> }>();
     const prereqError = page.props.errors?.prerequisites;
 
@@ -153,45 +154,58 @@ export default function CourseShow({ course, isEnrolled, completedAt, missingPre
                                         </div>
                                         <CollapsibleContent>
                                             <CardContent className="p-0">
-                                                <div className="divide-y divide-sidebar-border/70">
-                                                    {module.contents.map((content) => (
-                                                        <div key={content.id} className="flex items-center justify-between px-6 py-3 hover:bg-muted/20 transition-colors">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="text-muted-foreground">
-                                                                    {getContentIcon(content.type)}
+                                                {module.contents.length === 0 ? (
+                                                    <div className="flex items-center justify-between px-6 py-4 text-sm text-muted-foreground">
+                                                        <span>No lessons available yet.</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="divide-y divide-sidebar-border/70">
+                                                        {module.contents.map((content) => {
+                                                            const isUnlocked = unlockedContentIds.includes(content.id);
+                                                            return (
+                                                            <div key={content.id} className="flex items-center justify-between px-6 py-3 hover:bg-muted/20 transition-colors">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="text-muted-foreground">
+                                                                        {getContentIcon(content.type)}
+                                                                    </div>
+                                                                    <span className={!isEnrolled || !isUnlocked ? "text-muted-foreground" : ""}>
+                                                                        {content.title}
+                                                                    </span>
                                                                 </div>
-                                                                <span className={!isEnrolled ? "text-muted-foreground" : ""}>
-                                                                    {content.title}
-                                                                </span>
+                                                                <div>
+                                                                    {isEnrolled && isUnlocked ? (
+                                                                        <Button size="sm" variant="ghost" className="h-8" asChild>
+                                                                            <Link
+                                                                                href={
+                                                                                    lessonsRoutes.show({
+                                                                                        course: course.slug,
+                                                                                        content: content.id,
+                                                                                    }).url
+                                                                                }
+                                                                            >
+                                                                                Start
+                                                                            </Link>
+                                                                        </Button>
+                                                                    ) : (
+                                                                        <Lock className="h-4 w-4 text-muted-foreground" />
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                            <div>
-                                                                {isEnrolled ? (
-                                                                    <Button size="sm" variant="ghost" className="h-8" asChild>
-                                                                        <Link
-                                                                            href={
-                                                                                lessonsRoutes.show({
-                                                                                    course: course.slug,
-                                                                                    content: content.id,
-                                                                                }).url
-                                                                            }
-                                                                        >
-                                                                            Start
-                                                                        </Link>
-                                                                    </Button>
-                                                                ) : (
-                                                                    <Lock className="h-4 w-4 text-muted-foreground" />
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
                                             </CardContent>
                                         </CollapsibleContent>
                                     </Collapsible>
                                 </Card>
                             ))}
                             {course.modules.length === 0 && (
-                                <p className="text-muted-foreground italic">No content available yet.</p>
+                                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-sidebar-border/70 p-10 text-center dark:border-sidebar-border">
+                                    <FileText className="h-10 w-10 text-muted-foreground/60" />
+                                    <div className="mt-3 text-sm font-medium">No content yet</div>
+                                    <div className="mt-1 text-sm text-muted-foreground">This course will appear here as soon as lessons are published.</div>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -277,7 +291,7 @@ export default function CourseShow({ course, isEnrolled, completedAt, missingPre
                                         onClick={handleEnroll} 
                                         disabled={processing || !canEnroll}
                                     >
-                                        {processing && <div className="mr-2 animate-spin">⟳</div>}
+                                        {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         {canEnroll ? 'Enroll for Free' : 'Complete prerequisites to enroll'}
                                     </Button>
                                 )}

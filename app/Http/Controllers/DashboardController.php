@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 
 use App\Models\Certificate;
 use App\Models\Course;
+use App\Models\User;
 use App\Models\UserProgress;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -15,6 +16,14 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
+
+        if (! $user instanceof User) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if ($user && $user->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
         
         // Calculate stats
         $totalCoursesCount = $user->courses()->count();

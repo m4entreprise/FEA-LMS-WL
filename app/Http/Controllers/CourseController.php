@@ -55,7 +55,7 @@ class CourseController extends Controller
         if ($user) {
             if ($status === 'enrolled') {
                 $query->whereHas('students', function ($q) use ($user) {
-                    $q->where('users.id', $user->id);
+                    $q->where('users.id', $user->id)->whereNull('course_user.completed_at');
                 });
             }
 
@@ -164,6 +164,9 @@ class CourseController extends Controller
         /** @var \App\Models\User|null $user */
         $user = Auth::user();
 
+        $canAccessAsEnrolled = $enrollment !== null || ($user && $user->isAdmin());
+        $unlockedContentIds = [];
+
         $continueContentId = $firstContentId;
         $progressSummary = [
             'percent' => 0,
@@ -171,11 +174,35 @@ class CourseController extends Controller
             'total' => $orderedContents->count(),
         ];
 
-        if ($user && $enrollment && $firstContentId) {
+        if ($user && $canAccessAsEnrolled && $firstContentId) {
             $completedContentIds = UserProgress::where('user_id', $user->id)
                 ->whereIn('content_id', $orderedContents->pluck('id'))
                 ->pluck('content_id')
                 ->all();
+
+            if ($user->isAdmin()) {
+                $unlockedContentIds = $orderedContents->pluck('id')->all();
+            } else {
+                $completedSet = array_flip($completedContentIds);
+                foreach ($course->modules as $module) {
+                    $moduleContentIds = $module->contents->pluck('id')->all();
+                    foreach ($moduleContentIds as $id) {
+                        $unlockedContentIds[] = $id;
+                    }
+
+                    $moduleCompleted = true;
+                    foreach ($moduleContentIds as $id) {
+                        if (! isset($completedSet[$id])) {
+                            $moduleCompleted = false;
+                            break;
+                        }
+                    }
+
+                    if (! $moduleCompleted) {
+                        break;
+                    }
+                }
+            }
 
             $completedCount = count($completedContentIds);
             $totalCount = $orderedContents->count();
@@ -207,8 +234,9 @@ class CourseController extends Controller
 
         return \Inertia\Inertia::render('courses/show', [
             'course' => $course,
-            'isEnrolled' => $enrollment !== null,
+            'isEnrolled' => $canAccessAsEnrolled,
             'completedAt' => $enrollment?->pivot?->completed_at,
+            'unlockedContentIds' => $unlockedContentIds,
             'missingPrerequisiteIds' => $missingPrerequisiteIds,
             'firstContentId' => $firstContentId,
             'continueContentId' => $continueContentId,

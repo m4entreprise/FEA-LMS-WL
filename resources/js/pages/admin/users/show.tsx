@@ -69,7 +69,7 @@ export default function UserShow({ user, enrolledCourses, recentActivity, certif
             <div className="flex flex-col gap-6 p-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Button variant="outline" size="icon" asChild>
+                        <Button variant="outline" size="icon" asChild aria-label="Back to users" title="Back to users">
                             <Link href={usersRoutes.index().url}>
                                 <ChevronLeft className="h-4 w-4" />
                             </Link>

@@ -2,10 +2,8 @@ import { createInertiaApp } from '@inertiajs/react';
 import createServer from '@inertiajs/react/server';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import ReactDOMServer from 'react-dom/server';
-import { InertiaToastListener } from './components/inertia-toast-listener';
-import { Toaster } from './components/toaster';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'M4 LMS';
 
 createServer((page) =>
     createInertiaApp({
@@ -20,8 +18,6 @@ createServer((page) =>
         setup: ({ App, props }) => {
             return (
                 <>
-                    <InertiaToastListener />
-                    <Toaster />
                     <App {...props} />
                 </>
             );

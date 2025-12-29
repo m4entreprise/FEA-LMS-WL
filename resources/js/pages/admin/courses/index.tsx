@@ -1,10 +1,12 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import AppLayout from '@/layouts/app-layout';
 import * as coursesRoutes from '@/routes/admin/courses';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { BookOpen, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface Course {
     id: number;
@@ -26,13 +28,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function CourseIndex({ courses }: Props) {
-    const { delete: destroy } = useForm();
-
-    const handleDelete = (id: number) => {
-        if (confirm('Are you sure you want to delete this course?')) {
-            destroy(coursesRoutes.destroy(id).url);
-        }
-    };
+    const { delete: destroy, processing } = useForm();
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [courseIdToDelete, setCourseIdToDelete] = useState<number | null>(null);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -84,7 +82,12 @@ export default function CourseIndex({ courses }: Props) {
                                     variant="ghost" 
                                     size="sm" 
                                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    onClick={() => handleDelete(course.id)}
+                                    aria-label="Delete course"
+                                    title="Delete course"
+                                    onClick={() => {
+                                        setCourseIdToDelete(course.id);
+                                        setConfirmOpen(true);
+                                    }}
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -105,6 +108,25 @@ export default function CourseIndex({ courses }: Props) {
                         </div>
                     )}
                 </div>
+
+                <ConfirmDialog
+                    open={confirmOpen}
+                    onOpenChange={(open) => {
+                        setConfirmOpen(open);
+                        if (!open) {
+                            setCourseIdToDelete(null);
+                        }
+                    }}
+                    title="Delete course"
+                    description="This action cannot be undone."
+                    confirmText="Delete"
+                    confirmVariant="destructive"
+                    confirmDisabled={processing}
+                    onConfirm={() => {
+                        if (courseIdToDelete === null) return;
+                        destroy(coursesRoutes.destroy(courseIdToDelete).url, { preserveScroll: true });
+                    }}
+                />
             </div>
         </AppLayout>
     );

@@ -199,7 +199,9 @@ export default function AdminDashboard({ stats, series = [], recentUsers = [], r
                         <CardContent>
                             <div className="space-y-4">
                                 {recentUsers.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">No users found.</p>
+                                    <div className="rounded-lg border border-dashed border-sidebar-border/70 p-6 text-center text-sm text-muted-foreground dark:border-sidebar-border">
+                                        No users found.
+                                    </div>
                                 ) : (
                                     recentUsers.map((user) => (
                                         <div key={user.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
@@ -226,7 +228,9 @@ export default function AdminDashboard({ stats, series = [], recentUsers = [], r
                         <CardContent>
                             <div className="space-y-4">
                                 {recentEnrollments.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">No enrollments yet.</p>
+                                    <div className="rounded-lg border border-dashed border-sidebar-border/70 p-6 text-center text-sm text-muted-foreground dark:border-sidebar-border">
+                                        No enrollments yet.
+                                    </div>
                                 ) : (
                                     recentEnrollments.map((enrollment, idx) => (
                                         <div key={idx} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">

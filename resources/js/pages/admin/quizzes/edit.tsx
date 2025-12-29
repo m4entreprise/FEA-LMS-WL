@@ -8,11 +8,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Plus, Pencil, Trash2, GripVertical, Check, X, Save, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 import * as quizzesRoutes from '@/routes/admin/quizzes';
 import * as quizQuestionsRoutes from '@/routes/admin/quizzes/questions';
 import * as questionsRoutes from '@/routes/admin/questions';
@@ -102,6 +103,9 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
     // Question Management
     const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
     const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [questionToDelete, setQuestionToDelete] = useState<Question | null>(null);
+    const [isDeletingQuestion, setIsDeletingQuestion] = useState(false);
 
     const questionForm = useForm<{
         text: string;
@@ -115,15 +119,10 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
         options: [{ text: '', is_correct: false }, { text: '', is_correct: false }],
     });
 
-    // Reset form when dialog opens/closes or mode changes
-    useEffect(() => {
-        if (!isQuestionDialogOpen) {
-            questionForm.reset();
-            setEditingQuestion(null);
-        }
-    }, [isQuestionDialogOpen]);
+    const isBusy = settingsForm.processing || questionForm.processing || isDeletingQuestion;
 
     const openCreateQuestion = () => {
+        if (isBusy) return;
         setEditingQuestion(null);
         questionForm.setData({
             text: '',
@@ -135,6 +134,7 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
     };
 
     const openEditQuestion = (question: Question) => {
+        if (isBusy) return;
         setEditingQuestion(question);
         questionForm.setData({
             text: question.text,
@@ -154,7 +154,7 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                 { text: 'False', is_correct: false }
             ];
         } else if (value === 'short_answer') {
-            newOptions = [];
+            newOptions = [{ text: '', is_correct: true }];
         } else if (value === 'multiple_choice' && newOptions.length < 2) {
             newOptions = [
                 { text: '', is_correct: false },
@@ -170,19 +170,29 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
     };
 
     const addOption = () => {
+        if (questionForm.processing) return;
         questionForm.setData('options', [
             ...questionForm.data.options,
             { text: '', is_correct: false }
         ]);
     };
 
+    const addShortAnswer = () => {
+        if (questionForm.processing) return;
+        questionForm.setData('options', [
+            ...questionForm.data.options,
+            { text: '', is_correct: true }
+        ]);
+    };
+
     const removeOption = (index: number) => {
+        if (questionForm.processing) return;
         const newOptions = [...questionForm.data.options];
         newOptions.splice(index, 1);
         questionForm.setData('options', newOptions);
     };
 
-    const updateOption = (index: number, field: keyof Option, value: any) => {
+    const updateOption = (index: number, field: keyof Option, value: unknown) => {
         const newOptions = [...questionForm.data.options];
         newOptions[index] = { ...newOptions[index], [field]: value };
         questionForm.setData('options', newOptions);
@@ -190,6 +200,8 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
 
     const submitQuestion = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (questionForm.processing) return;
         
         if (editingQuestion) {
             questionForm.put(questionsRoutes.update(editingQuestion.id).url, {
@@ -203,9 +215,9 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
     };
 
     const deleteQuestion = (question: Question) => {
-        if (confirm('Are you sure you want to delete this question?')) {
-            router.delete(questionsRoutes.destroy(question.id).url);
-        }
+        if (isBusy) return;
+        setQuestionToDelete(question);
+        setDeleteDialogOpen(true);
     };
 
     return (
@@ -215,7 +227,7 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
             <div className="flex flex-col gap-6 p-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Button variant="outline" size="icon" asChild>
+                        <Button variant="outline" size="icon" asChild aria-label="Back to course" title="Back to course">
                             <a href={coursesRoutes.edit(course.id).url}>
                                 <ArrowLeft className="h-4 w-4" />
                             </a>
@@ -236,7 +248,7 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                                     <CardTitle>Questions</CardTitle>
                                     <CardDescription>Manage the questions for this quiz.</CardDescription>
                                 </div>
-                                <Button onClick={openCreateQuestion} size="sm">
+                                <Button onClick={openCreateQuestion} size="sm" disabled={isBusy}>
                                     <Plus className="mr-2 h-4 w-4" /> Add Question
                                 </Button>
                             </CardHeader>
@@ -265,10 +277,10 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditQuestion(question)}>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditQuestion(question)} disabled={isBusy} aria-label="Edit question" title="Edit question">
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteQuestion(question)}>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteQuestion(question)} disabled={isBusy} aria-label="Delete question" title="Delete question">
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
@@ -297,6 +309,7 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                                             onChange={(e) => settingsForm.setData('description', e.target.value)}
                                             placeholder="Instructions for the student..."
                                             rows={3}
+                                            disabled={settingsForm.processing || isDeletingQuestion}
                                         />
                                         {settingsForm.errors.description && <p className="text-sm text-destructive">{settingsForm.errors.description}</p>}
                                     </div>
@@ -311,6 +324,7 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                                                 max="100"
                                                 value={settingsForm.data.passing_score}
                                                 onChange={(e) => settingsForm.setData('passing_score', parseInt(e.target.value) || 0)}
+                                                disabled={settingsForm.processing || isDeletingQuestion}
                                             />
                                             {settingsForm.errors.passing_score && <p className="text-sm text-destructive">{settingsForm.errors.passing_score}</p>}
                                         </div>
@@ -323,17 +337,18 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                                                 placeholder="None"
                                                 value={settingsForm.data.time_limit}
                                                 onChange={(e) => settingsForm.setData('time_limit', e.target.value)}
+                                                disabled={settingsForm.processing || isDeletingQuestion}
                                             />
                                             {settingsForm.errors.time_limit && <p className="text-sm text-destructive">{settingsForm.errors.time_limit}</p>}
                                         </div>
                                     </div>
 
                                     <div className="flex items-center justify-between border rounded-lg p-3">
-                                        <Label htmlFor="shuffle_questions" className="cursor-pointer">Shuffle Questions</Label>
+                                        <Label className="cursor-pointer">Shuffle Questions</Label>
                                         <Switch
-                                            id="shuffle_questions"
                                             checked={settingsForm.data.shuffle_questions}
                                             onCheckedChange={(checked) => settingsForm.setData('shuffle_questions', checked)}
+                                            className={settingsForm.processing || isDeletingQuestion ? 'pointer-events-none opacity-60' : undefined}
                                         />
                                     </div>
                                 </CardContent>
@@ -350,7 +365,16 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
             </div>
 
             {/* Question Dialog */}
-            <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
+            <Dialog
+                open={isQuestionDialogOpen}
+                onOpenChange={(open) => {
+                    setIsQuestionDialogOpen(open);
+                    if (!open) {
+                        questionForm.reset();
+                        setEditingQuestion(null);
+                    }
+                }}
+            >
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{editingQuestion ? 'Edit Question' : 'Add Question'}</DialogTitle>
@@ -369,6 +393,7 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                                     onChange={(e) => questionForm.setData('text', e.target.value)}
                                     placeholder="e.g. What is the capital of France?"
                                     required
+                                    disabled={questionForm.processing}
                                 />
                                 {questionForm.errors.text && <p className="text-sm text-destructive">{questionForm.errors.text}</p>}
                             </div>
@@ -381,6 +406,7 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                                     value={questionForm.data.points}
                                     onChange={(e) => questionForm.setData('points', parseInt(e.target.value) || 0)}
                                     required
+                                    disabled={questionForm.processing}
                                 />
                             </div>
                         </div>
@@ -389,7 +415,8 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                             <Label htmlFor="q_type">Question Type</Label>
                             <Select 
                                 value={questionForm.data.type} 
-                                onValueChange={(val: any) => handleQuestionTypeChange(val)}
+                                onValueChange={(val) => handleQuestionTypeChange(val as Question['type'])}
+                                disabled={questionForm.processing}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select type" />
@@ -402,7 +429,7 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                             </Select>
                         </div>
 
-                        {questionForm.data.type !== 'short_answer' && (
+                        {(questionForm.data.type === 'multiple_choice' || questionForm.data.type === 'true_false') && (
                             <div className="space-y-4 border rounded-lg p-4">
                                 <div className="flex items-center justify-between">
                                     <Label>Options</Label>
@@ -420,7 +447,8 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                                                 <Checkbox 
                                                     id={`opt_${idx}`}
                                                     checked={option.is_correct}
-                                                    onCheckedChange={(checked) => updateOption(idx, 'is_correct', checked)}
+                                                    onCheckedChange={(checked) => updateOption(idx, 'is_correct', checked === true)}
+                                                    disabled={questionForm.processing}
                                                 />
                                             </div>
                                             <Input
@@ -429,9 +457,42 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                                                 placeholder={`Option ${idx + 1}`}
                                                 className="flex-1"
                                                 required
+                                                disabled={questionForm.processing}
                                             />
                                             {questionForm.data.type === 'multiple_choice' && questionForm.data.options.length > 2 && (
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeOption(idx)}>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeOption(idx)} disabled={questionForm.processing} aria-label="Remove option" title="Remove option">
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                {questionForm.errors.options && <p className="text-sm text-destructive">{questionForm.errors.options}</p>}
+                            </div>
+                        )}
+
+                        {questionForm.data.type === 'short_answer' && (
+                            <div className="space-y-4 border rounded-lg p-4">
+                                <div className="flex items-center justify-between">
+                                    <Label>Accepted Answers</Label>
+                                    <Button type="button" variant="ghost" size="sm" onClick={addShortAnswer} disabled={questionForm.processing}>
+                                        <Plus className="mr-2 h-3 w-3" /> Add Answer
+                                    </Button>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {questionForm.data.options.map((option, idx) => (
+                                        <div key={idx} className="flex items-center gap-3">
+                                            <Input
+                                                value={option.text}
+                                                onChange={(e) => updateOption(idx, 'text', e.target.value)}
+                                                placeholder={idx === 0 ? 'e.g. Paris' : `Answer ${idx + 1}`}
+                                                className="flex-1"
+                                                required
+                                                disabled={questionForm.processing}
+                                            />
+                                            {questionForm.data.options.length > 1 && (
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeOption(idx)} disabled={questionForm.processing} aria-label="Remove answer" title="Remove answer">
                                                     <X className="h-4 w-4" />
                                                 </Button>
                                             )}
@@ -443,7 +504,7 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                         )}
 
                         <DialogFooter>
-                            <Button type="button" variant="ghost" onClick={() => setIsQuestionDialogOpen(false)}>Cancel</Button>
+                            <Button type="button" variant="ghost" onClick={() => setIsQuestionDialogOpen(false)} disabled={questionForm.processing}>Cancel</Button>
                             <Button type="submit" disabled={questionForm.processing}>
                                 {questionForm.processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {editingQuestion ? 'Update Question' : 'Add Question'}
@@ -452,6 +513,30 @@ export default function QuizEdit({ quiz, course, module, content }: Props) {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={deleteDialogOpen}
+                onOpenChange={(open) => {
+                    setDeleteDialogOpen(open);
+                    if (!open) {
+                        setQuestionToDelete(null);
+                        setIsDeletingQuestion(false);
+                    }
+                }}
+                title="Delete question"
+                description="This action cannot be undone."
+                confirmText="Delete"
+                confirmVariant="destructive"
+                confirmDisabled={isDeletingQuestion}
+                onConfirm={() => {
+                    if (!questionToDelete) return;
+                    setIsDeletingQuestion(true);
+                    router.delete(questionsRoutes.destroy(questionToDelete.id).url, {
+                        preserveScroll: true,
+                        onFinish: () => setIsDeletingQuestion(false),
+                    });
+                }}
+            />
         </AppLayout>
     );
 }

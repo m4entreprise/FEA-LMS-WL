@@ -5,6 +5,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { resolveUrl } from '@/lib/utils';
 import { type NavItem } from '@/types';
@@ -18,6 +19,8 @@ export function NavFooter({
 }: ComponentPropsWithoutRef<typeof SidebarGroup> & {
     items: NavItem[];
 }) {
+    const { isMobile, setOpenMobile } = useSidebar();
+
     return (
         <SidebarGroup
             {...props}
@@ -26,7 +29,7 @@ export function NavFooter({
             <SidebarGroupContent>
                 <SidebarMenu>
                     {items.map((item) => (
-                        <SidebarMenuItem key={item.title}>
+                        <SidebarMenuItem key={resolveUrl(item.href)}>
                             <SidebarMenuButton
                                 asChild
                                 className="text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-100"
@@ -36,6 +39,11 @@ export function NavFooter({
                                         href={resolveUrl(item.href)}
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        onClick={() => {
+                                            if (isMobile) {
+                                                setOpenMobile(false);
+                                            }
+                                        }}
                                     >
                                         {item.icon && (
                                             <Icon
@@ -46,7 +54,14 @@ export function NavFooter({
                                         <span>{item.title}</span>
                                     </a>
                                 ) : (
-                                    <Link href={resolveUrl(item.href)}>
+                                    <Link
+                                        href={resolveUrl(item.href)}
+                                        onClick={() => {
+                                            if (isMobile) {
+                                                setOpenMobile(false);
+                                            }
+                                        }}
+                                    >
                                         {item.icon && (
                                             <Icon
                                                 iconNode={item.icon}

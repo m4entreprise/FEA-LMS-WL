@@ -9,6 +9,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { dashboard as adminDashboardRoute } from '@/routes/admin';
@@ -20,16 +21,19 @@ import * as certificatesRoutes from '@/routes/certificates';
 import * as studentCoursesRoutes from '@/routes/courses';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, LayoutGrid, Users, GraduationCap, BarChart, Award, Library, ShieldQuestion, Shield } from 'lucide-react';
+import { BookOpen, LayoutGrid, Users, GraduationCap, Award, Library, ShieldQuestion, Shield, Palette } from 'lucide-react';
 import AppLogo from './app-logo';
 
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
+    const { isMobile, setOpenMobile } = useSidebar();
+
+    const isAdmin = auth.user?.role === 'admin';
 
     const mainNavItems: NavItem[] = [
         {
             title: 'Dashboard',
-            href: dashboard(),
+            href: isAdmin ? adminDashboardRoute() : dashboard(),
             icon: LayoutGrid,
         },
         {
@@ -37,23 +41,26 @@ export function AppSidebar() {
             href: studentCoursesRoutes.index(),
             icon: BookOpen,
         },
-        {
+    ];
+
+    if (!isAdmin) {
+        mainNavItems.push({
             title: 'Certificates',
             href: certificatesRoutes.index(),
             icon: Award,
-        },
-    ];
-
-    if (auth.user?.role === 'admin') {
-        mainNavItems.push({
-            title: 'Admin Overview',
-            href: adminDashboardRoute(),
-            icon: BarChart,
         });
+    }
+
+    if (isAdmin) {
         mainNavItems.push({
             title: 'Courses',
             href: adminCoursesRoutes.index(),
             icon: GraduationCap,
+        });
+        mainNavItems.push({
+            title: 'Branding',
+            href: '/admin/branding',
+            icon: Palette,
         });
         mainNavItems.push({
             title: 'Certificates',
@@ -91,7 +98,15 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            <Link
+                                href={isAdmin ? adminDashboardRoute() : dashboard()}
+                                prefetch
+                                onClick={() => {
+                                    if (isMobile) {
+                                        setOpenMobile(false);
+                                    }
+                                }}
+                            >
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>

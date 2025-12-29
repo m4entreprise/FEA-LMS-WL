@@ -10,6 +10,7 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
+Route::get('certificates/verify', [\App\Http\Controllers\CertificateController::class, 'verifyForm'])->name('certificates.verify.form');
 Route::get('certificates/verify/{uuid}', [\App\Http\Controllers\CertificateController::class, 'verify'])->name('certificates.verify');
 
 Route::get('support', function () {
@@ -19,6 +20,10 @@ Route::get('support', function () {
 Route::get('privacy', function () {
     return Inertia::render('privacy');
 })->name('privacy');
+
+Route::get('terms', function () {
+    return Inertia::render('terms');
+})->name('terms');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
@@ -45,6 +50,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('dashboard', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('reports/enrollments.csv', [\App\Http\Controllers\Admin\ReportController::class, 'enrollmentsCsv'])->name('reports.enrollments.csv');
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
+    Route::get('branding', [\App\Http\Controllers\Admin\BrandingController::class, 'edit'])->name('branding.edit');
+    Route::post('branding', [\App\Http\Controllers\Admin\BrandingController::class, 'update'])->name('branding.update');
     Route::get('certificates', [\App\Http\Controllers\Admin\CertificateController::class, 'index'])->name('certificates.index');
     Route::get('certificates/{certificate}', [\App\Http\Controllers\Admin\CertificateController::class, 'show'])->name('certificates.show');
     Route::get('question-bank', [\App\Http\Controllers\Admin\QuestionBankController::class, 'index'])->name('question-bank.index');

@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { CheckCircle2, XCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import * as quizzesRoutes from '@/routes/quizzes';
 
@@ -28,6 +29,8 @@ export interface Attempt {
     score: number;
     passed: boolean;
     created_at: string;
+    correct_answers_count?: number;
+    answers_count?: number;
 }
 
 export interface Quiz {
@@ -47,6 +50,7 @@ interface Props {
 export default function QuizPlayer({ quiz }: Props) {
     const lastAttempt = quiz.attempts && quiz.attempts.length > 0 ? quiz.attempts[0] : null;
     const [hasStarted, setHasStarted] = useState(false);
+    const [cancelOpen, setCancelOpen] = useState(false);
     const totalPoints = quiz.questions.reduce((sum, q) => sum + q.points, 0);
     const requiredPoints = Math.ceil((quiz.passing_score / 100) * totalPoints);
     const lastAttemptPercent = lastAttempt && totalPoints > 0 ? Math.round((lastAttempt.score / totalPoints) * 100) : 0;
@@ -108,6 +112,9 @@ export default function QuizPlayer({ quiz }: Props) {
 
     if (lastAttempt && !hasStarted) {
         const passed = lastAttempt.passed;
+        const correctAnswers = lastAttempt.correct_answers_count;
+        const totalAnswered = lastAttempt.answers_count;
+        const hasAnswerCounts = typeof correctAnswers === 'number' && typeof totalAnswered === 'number';
         return (
             <div className="space-y-6">
                 {passed ? (
@@ -115,7 +122,12 @@ export default function QuizPlayer({ quiz }: Props) {
                         <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                         <AlertTitle>Quiz Passed!</AlertTitle>
                         <AlertDescription>
-                            You scored {lastAttempt.score} / {totalPoints} points ({lastAttemptPercent}%).
+                            {hasAnswerCounts
+                                ? `You answered ${correctAnswers} / ${totalAnswered} questions correctly.`
+                                : `You scored ${lastAttempt.score} / ${totalPoints} points (${lastAttemptPercent}%).`}
+                            <div className="mt-1 text-xs text-muted-foreground">
+                                Points: {lastAttempt.score} / {totalPoints}
+                            </div>
                         </AlertDescription>
                     </Alert>
                 ) : (
@@ -123,8 +135,13 @@ export default function QuizPlayer({ quiz }: Props) {
                         <XCircle className="h-4 w-4" />
                         <AlertTitle>Quiz Failed</AlertTitle>
                         <AlertDescription>
-                            You scored {lastAttempt.score} / {totalPoints} points ({lastAttemptPercent}%).
+                            {hasAnswerCounts
+                                ? `You answered ${correctAnswers} / ${totalAnswered} questions correctly.`
+                                : `You scored ${lastAttempt.score} / ${totalPoints} points (${lastAttemptPercent}%).`}
                             You need {quiz.passing_score}% ({requiredPoints} points) to pass.
+                            <div className="mt-1 text-xs text-muted-foreground">
+                                Points: {lastAttempt.score} / {totalPoints}
+                            </div>
                         </AlertDescription>
                     </Alert>
                 )}
@@ -269,12 +286,7 @@ export default function QuizPlayer({ quiz }: Props) {
             </div>
 
             <div className="flex items-center justify-end gap-4 pt-4">
-                <Button type="button" variant="outline" onClick={() => {
-                    if(confirm("Are you sure you want to cancel? Progress will be lost.")) {
-                        setHasStarted(false);
-                        reset();
-                    }
-                }}>
+                <Button type="button" variant="outline" onClick={() => setCancelOpen(true)}>
                     Cancel
                 </Button>
                 <Button type="submit" disabled={processing} size="lg">
@@ -282,6 +294,19 @@ export default function QuizPlayer({ quiz }: Props) {
                     Submit Quiz
                 </Button>
             </div>
+
+            <ConfirmDialog
+                open={cancelOpen}
+                onOpenChange={setCancelOpen}
+                title="Cancel quiz?"
+                description="Progress will be lost."
+                confirmText="Cancel quiz"
+                confirmVariant="destructive"
+                onConfirm={() => {
+                    setHasStarted(false);
+                    reset();
+                }}
+            />
             
             {Object.keys(errors).length > 0 && (
                 <Alert variant="destructive">

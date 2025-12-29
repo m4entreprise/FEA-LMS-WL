@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Certificate;
 use App\Models\Course;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Laravel\Fortify\Features;
 
 class CertificateController extends Controller
 {
@@ -58,6 +60,37 @@ class CertificateController extends Controller
 
         return \Inertia\Inertia::render('certificates/verify', [
             'certificate' => $certificate,
+            'query' => $uuid,
+            'searched' => true,
+            'canRegister' => Features::enabled(Features::registration()),
+        ]);
+    }
+
+    public function verifyForm(Request $request): \Inertia\Response
+    {
+        $qRaw = trim((string) $request->query('q', ''));
+
+        $q = $qRaw;
+        if ($q !== '' && str_contains($q, '/')) {
+            $q = trim((string) Str::of($q)->afterLast('/'));
+        }
+
+        $certificate = null;
+        if ($q !== '') {
+            $qUpper = strtoupper($q);
+
+            $certificate = Certificate::query()
+                ->where('uuid', $q)
+                ->orWhere('certificate_number', $qUpper)
+                ->with(['user:id,name', 'course:id,title,slug'])
+                ->first();
+        }
+
+        return \Inertia\Inertia::render('certificates/verify', [
+            'certificate' => $certificate,
+            'query' => $qRaw,
+            'searched' => $qRaw !== '',
+            'canRegister' => Features::enabled(Features::registration()),
         ]);
     }
 

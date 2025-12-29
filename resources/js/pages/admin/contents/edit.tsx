@@ -90,7 +90,7 @@ export default function ContentEdit({ content, course, module }: Props) {
 
             <div className="flex flex-col gap-6 p-6">
                 <div className="flex items-center gap-4">
-                    <Button variant="outline" size="icon" asChild>
+                    <Button variant="outline" size="icon" asChild aria-label="Back to course" title="Back to course">
                         <Link href={coursesRoutes.edit(course.id).url}>
                             <ChevronLeft className="h-4 w-4" />
                         </Link>
@@ -124,6 +124,7 @@ export default function ContentEdit({ content, course, module }: Props) {
                                         onChange={(e) => setData('title', e.target.value)}
                                         placeholder="Content title"
                                         required
+                                        disabled={processing}
                                     />
                                     {errors.title && <p className="text-sm text-destructive">{errors.title}</p>}
                                 </div>
@@ -137,6 +138,7 @@ export default function ContentEdit({ content, course, module }: Props) {
                                             onChange={(e) => setData('body', e.target.value)}
                                             placeholder="Write your course content here..."
                                             className="min-h-[300px] font-mono"
+                                            disabled={processing}
                                         />
                                         <p className="text-xs text-muted-foreground">Markdown is supported.</p>
                                         {errors.body && <p className="text-sm text-destructive">{errors.body}</p>}
@@ -151,6 +153,7 @@ export default function ContentEdit({ content, course, module }: Props) {
                                                 defaultValue={videoSource}
                                                 onValueChange={(value) => setVideoSource(value as 'url' | 'upload')}
                                                 className="flex gap-4"
+                                                disabled={processing}
                                             >
                                                 <div className="flex items-center space-x-2">
                                                     <RadioGroupItem value="url" id="source-url" />
@@ -171,6 +174,7 @@ export default function ContentEdit({ content, course, module }: Props) {
                                                     value={data.video_url}
                                                     onChange={(e) => setData('video_url', e.target.value)}
                                                     placeholder="https://www.youtube.com/watch?v=..."
+                                                    disabled={processing}
                                                 />
                                                 <p className="text-xs text-muted-foreground">Enter a YouTube or Vimeo URL.</p>
                                                 {errors.video_url && <p className="text-sm text-destructive">{errors.video_url}</p>}
@@ -184,6 +188,7 @@ export default function ContentEdit({ content, course, module }: Props) {
                                                     onChange={(e) => setData('file', e.target.files ? e.target.files[0] : null)}
                                                     className="cursor-pointer"
                                                     accept="video/*"
+                                                    disabled={processing}
                                                 />
                                                 {data.file_path && !data.file && (
                                                     <p className="text-xs text-muted-foreground mt-1">
@@ -206,6 +211,7 @@ export default function ContentEdit({ content, course, module }: Props) {
                                             onChange={(e) => setData('file', e.target.files ? e.target.files[0] : null)}
                                             className="cursor-pointer"
                                             accept={content.type === 'scorm' ? '.zip' : undefined}
+                                            disabled={processing}
                                         />
                                         {data.file_path && (
                                             <p className="text-xs text-muted-foreground mt-1">
@@ -219,7 +225,7 @@ export default function ContentEdit({ content, course, module }: Props) {
                         </Card>
 
                         <div className="flex justify-end gap-4">
-                            <Button variant="outline" asChild>
+                            <Button variant="outline" asChild disabled={processing}>
                                 <Link href={coursesRoutes.edit(course.id).url}>
                                     Cancel
                                 </Link>

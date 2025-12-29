@@ -66,10 +66,54 @@ class LessonController extends Controller
             ->whereIn('content_id', $course->modules->flatMap->contents->pluck('id'))
             ->pluck('content_id');
 
+        $unlockedContentIds = [];
+        if (Auth::user()->isAdmin()) {
+            $unlockedContentIds = $course->modules->flatMap->contents->pluck('id')->all();
+        } else {
+            $completedSet = array_flip($progress->all());
+            foreach ($course->modules as $module) {
+                $moduleContentIds = $module->contents->pluck('id')->all();
+                foreach ($moduleContentIds as $id) {
+                    $unlockedContentIds[] = $id;
+                }
+
+                $moduleCompleted = true;
+                foreach ($moduleContentIds as $id) {
+                    if (! isset($completedSet[$id])) {
+                        $moduleCompleted = false;
+                        break;
+                    }
+                }
+
+                if (! $moduleCompleted) {
+                    break;
+                }
+            }
+        }
+
+        if (! in_array($content->id, $unlockedContentIds, true)) {
+            abort(403, 'This lesson is locked. Complete the previous module to unlock it.');
+        }
+
+        if ($previousContentId !== null && ! in_array($previousContentId, $unlockedContentIds, true)) {
+            $previousContentId = null;
+        }
+
+        if ($nextContentId !== null && ! in_array($nextContentId, $unlockedContentIds, true)) {
+            $nextContentId = null;
+        }
+
         if ($content->type === 'quiz') {
             $content->load(['quiz.questions.options']);
             $content->quiz->load(['attempts' => function ($q) {
-                $q->where('user_id', Auth::id())->orderBy('created_at', 'desc');
+                $q->where('user_id', Auth::id())
+                    ->withCount([
+                        'answers as correct_answers_count' => function ($qq) {
+                            $qq->where('is_correct', true);
+                        },
+                        'answers',
+                    ])
+                    ->orderBy('created_at', 'desc');
             }]);
         }
 
@@ -77,6 +121,7 @@ class LessonController extends Controller
             'course' => $course,
             'currentContent' => $content,
             'userProgress' => $progress,
+            'unlockedContentIds' => $unlockedContentIds,
             'previousContentId' => $previousContentId,
             'nextContentId' => $nextContentId,
         ]);

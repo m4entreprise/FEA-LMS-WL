@@ -15,6 +15,12 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
+        $this->call(AdminUserSeeder::class);
+
+        if ((bool) env('DEMO_SEED', app()->environment('local'))) {
+            $this->call(DemoLmsSeeder::class);
+        }
+
         User::firstOrCreate(
             ['email' => 'test@example.com'],
             [

@@ -12,7 +12,7 @@ import AppLayout from '@/layouts/app-layout';
 import * as coursesRoutes from '@/routes/courses';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 interface Course {
@@ -61,10 +61,14 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function CourseCatalog({ courses, categories, filters }: Props) {
+    const allValue = '__all__';
     const [search, setSearch] = useState(filters.q ?? '');
+    const [isLoading, setIsLoading] = useState(false);
     const categoryValue = filters.category ?? '';
     const durationValue = filters.duration ?? '';
     const statusValue = filters.status ?? '';
+
+    const hasActiveFilters = search.trim().length > 0 || categoryValue !== '' || durationValue !== '' || statusValue !== '';
 
     const normalizedLinks = useMemo(() => {
         return (courses.links ?? []).map((l) => ({
@@ -92,6 +96,8 @@ export default function CourseCatalog({ courses, categories, filters }: Props) {
             {
                 preserveState: true,
                 replace: true,
+                onStart: () => setIsLoading(true),
+                onFinish: () => setIsLoading(false),
             },
         );
     };
@@ -112,19 +118,21 @@ export default function CourseCatalog({ courses, categories, filters }: Props) {
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search courses..."
                         className="md:col-span-2"
+                        disabled={isLoading}
                     />
 
                     <Select
                         value={categoryValue}
                         onValueChange={(v) => {
-                            applyFilters({ category: v });
+                            applyFilters({ category: v === allValue ? '' : v });
                         }}
+                        disabled={isLoading}
                     >
                         <SelectTrigger>
                             <SelectValue placeholder="Category" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All categories</SelectItem>
+                            <SelectItem value={allValue}>All categories</SelectItem>
                             {categories.map((c) => (
                                 <SelectItem key={c} value={c}>
                                     {c}
@@ -136,14 +144,15 @@ export default function CourseCatalog({ courses, categories, filters }: Props) {
                     <Select
                         value={statusValue}
                         onValueChange={(v) => {
-                            applyFilters({ status: v });
+                            applyFilters({ status: v === allValue ? '' : v });
                         }}
+                        disabled={isLoading}
                     >
                         <SelectTrigger>
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All</SelectItem>
+                            <SelectItem value={allValue}>All</SelectItem>
                             <SelectItem value="enrolled">Enrolled</SelectItem>
                             <SelectItem value="completed">Completed</SelectItem>
                             <SelectItem value="available">Available</SelectItem>
@@ -155,14 +164,15 @@ export default function CourseCatalog({ courses, categories, filters }: Props) {
                     <Select
                         value={durationValue}
                         onValueChange={(v) => {
-                            applyFilters({ duration: v });
+                            applyFilters({ duration: v === allValue ? '' : v });
                         }}
+                        disabled={isLoading}
                     >
                         <SelectTrigger className="w-[220px]">
                             <SelectValue placeholder="Duration" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">Any duration</SelectItem>
+                            <SelectItem value={allValue}>Any duration</SelectItem>
                             <SelectItem value="0-30">0–30 mins</SelectItem>
                             <SelectItem value="30-60">30–60 mins</SelectItem>
                             <SelectItem value="60+">60+ mins</SelectItem>
@@ -172,8 +182,9 @@ export default function CourseCatalog({ courses, categories, filters }: Props) {
                     <Button
                         variant="secondary"
                         onClick={() => applyFilters({ q: search })}
-                        disabled={search.trim().length === 0}
+                        disabled={isLoading || search.trim().length === 0}
                     >
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Search
                     </Button>
 
@@ -181,8 +192,9 @@ export default function CourseCatalog({ courses, categories, filters }: Props) {
                         variant="ghost"
                         onClick={() => {
                             setSearch('');
-                            router.get(coursesRoutes.index().url, {}, { replace: true });
+                            router.get(coursesRoutes.index().url, {}, { replace: true, onStart: () => setIsLoading(true), onFinish: () => setIsLoading(false) });
                         }}
+                        disabled={isLoading}
                     >
                         Reset
                     </Button>
@@ -230,8 +242,26 @@ export default function CourseCatalog({ courses, categories, filters }: Props) {
                     {courses.data.length === 0 && (
                         <div className="col-span-full flex flex-col items-center justify-center rounded-xl border border-dashed border-sidebar-border/70 p-12 text-center dark:border-sidebar-border">
                             <BookOpen className="h-12 w-12 text-muted-foreground/50" />
-                            <h3 className="mt-4 text-lg font-semibold">No courses available</h3>
-                            <p className="mt-2 text-sm text-muted-foreground">Check back later for new content.</p>
+                            <h3 className="mt-4 text-lg font-semibold">{hasActiveFilters ? 'No results' : 'No courses available'}</h3>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                {hasActiveFilters
+                                    ? 'No courses match your current filters. Try adjusting them or reset the search.'
+                                    : 'Check back later for new content.'}
+                            </p>
+                            {hasActiveFilters ? (
+                                <div className="mt-4">
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => {
+                                            setSearch('');
+                                            router.get(coursesRoutes.index().url, {}, { replace: true, onStart: () => setIsLoading(true), onFinish: () => setIsLoading(false) });
+                                        }}
+                                        disabled={isLoading}
+                                    >
+                                        Reset filters
+                                    </Button>
+                                </div>
+                            ) : null}
                         </div>
                     )}
                 </div>
@@ -243,12 +273,12 @@ export default function CourseCatalog({ courses, categories, filters }: Props) {
                                 key={idx}
                                 variant={link.active ? 'default' : 'outline'}
                                 size="sm"
-                                disabled={!link.url}
+                                disabled={isLoading || !link.url}
                                 onClick={() => {
                                     if (!link.url) {
                                         return;
                                     }
-                                    router.get(link.url, {}, { preserveState: true });
+                                    router.get(link.url, {}, { preserveState: true, onStart: () => setIsLoading(true), onFinish: () => setIsLoading(false) });
                                 }}
                             >
                                 {link.label}

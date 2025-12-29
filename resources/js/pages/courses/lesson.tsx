@@ -1,16 +1,23 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from '@/components/ui/sheet';
 import AppLayout from '@/layouts/app-layout';
 import * as coursesRoutes from '@/routes/courses';
 import * as lessonsRoutes from '@/routes/lessons';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { FileText, Video, HelpCircle, FileBox, File, CheckCircle } from 'lucide-react';
+import { FileText, Video, HelpCircle, FileBox, File, CheckCircle, Loader2, Menu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import QuizPlayer, { type Quiz } from '@/components/quiz-player';
 import { ScormAdapter } from '@/lib/scorm-adapter';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Content {
     id: number;
@@ -40,6 +47,7 @@ interface Props {
     course: Course;
     currentContent: Content;
     userProgress: number[];
+    unlockedContentIds: number[];
     previousContentId?: number | null;
     nextContentId?: number | null;
 }
@@ -97,7 +105,7 @@ const ContentRenderer = ({ content }: { content: Content }) => {
             );
         case 'scorm':
             return (
-                <div className="h-[80vh] w-full overflow-hidden rounded-lg border bg-white">
+                <div className="h-[70svh] sm:h-[80vh] w-full overflow-hidden rounded-lg border bg-white">
                     {content.file_path ? (
                         <iframe 
                             src={`/storage/${content.file_path}`}
@@ -138,9 +146,11 @@ const ContentRenderer = ({ content }: { content: Content }) => {
     }
 };
 
-export default function LessonPlayer({ course, currentContent, userProgress = [], previousContentId = null, nextContentId = null }: Props) {
+export default function LessonPlayer({ course, currentContent, userProgress = [], unlockedContentIds = [], previousContentId = null, nextContentId = null }: Props) {
     const isCompleted = userProgress.includes(currentContent.id);
     const scormAdapterRef = useRef<ScormAdapter | null>(null);
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    const [isCompleting, setIsCompleting] = useState(false);
 
     useEffect(() => {
         if (currentContent.type === 'scorm') {
@@ -177,52 +187,74 @@ export default function LessonPlayer({ course, currentContent, userProgress = []
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${currentContent.title} - ${course.title}`} />
 
-            <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)]">
-                {/* Mobile Sidebar Trigger (could be added here) */}
-                
-                {/* Sidebar Navigation */}
-                <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-sidebar-border/70 bg-sidebar/30">
-                     <div className="p-4 border-b border-sidebar-border/70">
-                         <h2 className="font-semibold">{course.title}</h2>
-                         <Link href={coursesRoutes.show(course.slug).url} className="text-xs text-muted-foreground hover:underline">
-                             &larr; Back to Course Home
-                         </Link>
-                     </div>
-                     <ScrollArea className="h-[calc(100vh-8rem)]">
-                         <div className="p-4 space-y-4">
-                            {course.modules.map((module) => (
-                                <div key={module.id}>
-                                    <h3 className="mb-2 px-2 text-xs font-semibold uppercase text-muted-foreground">
-                                        {module.title}
-                                    </h3>
-                                    <div className="space-y-1">
-                                        {module.contents.map((content) => {
-                                            const isActive = content.id === currentContent.id;
-                                            return (
-                                                <Button
-                                                    key={content.id}
-                                                    variant={isActive ? "secondary" : "ghost"}
-                                                    size="sm"
-                                                    className="w-full justify-start gap-2"
-                                                    asChild
-                                                >
-                                                    <Link href={lessonsRoutes.show({ course: course.slug, content: content.id }).url}>
-                                                        {getContentIcon(content.type)}
-                                                        <span className="truncate">{content.title}</span>
-                                                    </Link>
-                                                </Button>
-                                            );
-                                        })}
+            {(() => {
+                const navContent = (
+                    <div className="flex h-full flex-col">
+                        <div className="p-4 border-b border-sidebar-border/70">
+                            <h2 className="font-semibold">{course.title}</h2>
+                            <Link href={coursesRoutes.show(course.slug).url} className="text-xs text-muted-foreground hover:underline">
+                                &larr; Back to Course Home
+                            </Link>
+                        </div>
+                        <ScrollArea className="flex-1 lg:h-[calc(100vh-8rem)]">
+                            <div className="p-4 space-y-4">
+                                {course.modules.map((module) => (
+                                    <div key={module.id}>
+                                        <h3 className="mb-2 px-2 text-xs font-semibold uppercase text-muted-foreground">
+                                            {module.title}
+                                        </h3>
+                                        <div className="space-y-1">
+                                            {module.contents.map((content) => {
+                                                const isActive = content.id === currentContent.id;
+                                                const isUnlocked = unlockedContentIds.includes(content.id);
+                                                return (
+                                                    <Button
+                                                        key={content.id}
+                                                        variant={isActive ? 'secondary' : 'ghost'}
+                                                        size="sm"
+                                                        className="w-full justify-start gap-2"
+                                                        asChild
+                                                        onClick={() => setMobileNavOpen(false)}
+                                                        disabled={!isUnlocked}
+                                                    >
+                                                        <Link href={lessonsRoutes.show({ course: course.slug, content: content.id }).url}>
+                                                            {getContentIcon(content.type)}
+                                                            <span className="truncate">{content.title}</span>
+                                                        </Link>
+                                                    </Button>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                         </div>
-                     </ScrollArea>
-                </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                );
 
-                {/* Main Content Area */}
-                <div className="flex-1 overflow-y-auto">
-                    <div className="container max-w-4xl py-8">
+                return (
+                    <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-4rem)]">
+                        <div className="hidden lg:block lg:w-80 lg:border-r border-sidebar-border/70 bg-sidebar/30">
+                            {navContent}
+                        </div>
+
+                        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+                            <SheetTrigger asChild>
+                                <Button variant="outline" className="mx-4 mt-4 lg:hidden w-fit">
+                                    <Menu className="mr-2 h-4 w-4" />
+                                    Lessons
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="left" className="p-0 w-[18rem] bg-sidebar">
+                                <SheetHeader className="sr-only">
+                                    <SheetTitle>Lessons</SheetTitle>
+                                </SheetHeader>
+                                {navContent}
+                            </SheetContent>
+                        </Sheet>
+
+                        <div className="flex-1 lg:overflow-y-auto">
+                            <div className="container max-w-4xl px-4 sm:px-6 py-6 sm:py-8">
                         <div className="mb-6">
                             <h1 className="text-2xl font-bold">{currentContent.title}</h1>
                         </div>
@@ -231,7 +263,7 @@ export default function LessonPlayer({ course, currentContent, userProgress = []
                             <CardContent className="p-6">
                                 <ContentRenderer content={currentContent} />
                             </CardContent>
-                            <CardFooter className="flex justify-between border-t p-6">
+                            <CardFooter className="flex flex-col gap-3 border-t p-6 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="text-sm text-muted-foreground">
                                     {isCompleted ? 'Completed' : 'Not completed'}
                                 </div>
@@ -241,10 +273,12 @@ export default function LessonPlayer({ course, currentContent, userProgress = []
                                         router.post(
                                             lessonsRoutes.complete({ course: course.slug, content: currentContent.id }).url,
                                             {},
-                                            { preserveScroll: true }
+                                            { preserveScroll: true, onStart: () => setIsCompleting(true), onFinish: () => setIsCompleting(false) }
                                         )
                                     }
+                                    disabled={isCompleting}
                                 >
+                                    {isCompleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                     {isCompleted ? (
                                         <>
                                             <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
@@ -257,7 +291,7 @@ export default function LessonPlayer({ course, currentContent, userProgress = []
                             </CardFooter>
                         </Card>
 
-                        <div className="mt-8 flex justify-between">
+                        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-between">
                             <Button variant="outline" disabled={!previousContentId} asChild={!!previousContentId}>
                                 {previousContentId ? (
                                     <Link href={lessonsRoutes.show({ course: course.slug, content: previousContentId }).url}>Previous Lesson</Link>
@@ -276,6 +310,8 @@ export default function LessonPlayer({ course, currentContent, userProgress = []
                     </div>
                 </div>
             </div>
+                );
+            })()}
         </AppLayout>
     );
 }

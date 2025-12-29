@@ -28,13 +28,44 @@
             html.dark {
                 background-color: oklch(0.145 0 0);
             }
+
+            :root {
+                @php($brandPrimary = config('brand.colors.primary'))
+                @php($brandSecondary = config('brand.colors.secondary'))
+                @php($brandRadius = config('brand.tokens.radius'))
+                @if ($brandPrimary)
+                    --primary: {{ $brandPrimary }};
+                @endif
+                @if ($brandSecondary)
+                    --secondary: {{ $brandSecondary }};
+                @endif
+                @if ($brandRadius)
+                    --radius: {{ $brandRadius }};
+                @endif
+            }
         </style>
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        @php($brandName = config('brand.name', config('app.name', 'M4 LMS')))
+        <title inertia>{{ $brandName }}</title>
+        @php($brandDescription = config('brand.meta.description', 'A modern learning platform for teams and students.'))
+        @php($brandImage = config('brand.meta.image', '/apple-touch-icon.png'))
+        @php($brandImageUrl = str_starts_with($brandImage, 'http') ? $brandImage : url($brandImage))
+        <meta name="description" content="{{ $brandDescription }}">
+        <meta property="og:type" content="website">
+        <meta property="og:title" content="{{ $brandName }}">
+        <meta property="og:description" content="{{ $brandDescription }}">
+        <meta property="og:image" content="{{ $brandImageUrl }}">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="{{ $brandName }}">
+        <meta name="twitter:description" content="{{ $brandDescription }}">
+        <meta name="twitter:image" content="{{ $brandImageUrl }}">
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        @php($favicon = config('brand.meta.favicon', '/favicon.ico'))
+        @php($faviconSvg = config('brand.meta.favicon_svg', '/favicon.svg'))
+        @php($appleTouch = config('brand.meta.apple_touch_icon', '/apple-touch-icon.png'))
+        <link rel="icon" href="{{ $favicon }}" sizes="any">
+        <link rel="icon" href="{{ $faviconSvg }}" type="image/svg+xml">
+        <link rel="apple-touch-icon" href="{{ $appleTouch }}">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />

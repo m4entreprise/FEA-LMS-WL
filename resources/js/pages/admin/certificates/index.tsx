@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/app-layout';
 import * as adminCertificatesRoutes from '@/routes/admin/certificates';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { useState } from 'react';
 
 interface Certificate {
@@ -30,13 +30,14 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function CertificatesIndex({ certificates, filters }: Props) {
     const [q, setQ] = useState(filters.q ?? '');
+    const [isLoading, setIsLoading] = useState(false);
 
     const onSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         router.get(
             adminCertificatesRoutes.index({ query: { q: q || undefined } }).url,
             {},
-            { preserveScroll: true }
+            { preserveScroll: true, onStart: () => setIsLoading(true), onFinish: () => setIsLoading(false) }
         );
     };
 
@@ -60,32 +61,37 @@ export default function CertificatesIndex({ certificates, filters }: Props) {
                             onChange={(e) => setQ(e.target.value)}
                             placeholder="Search by number, uuid, user, or course…"
                             className="pl-9"
+                            disabled={isLoading}
                         />
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button type="submit">Search</Button>
+                        <Button type="submit" disabled={isLoading}>
+                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Search
+                        </Button>
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => {
                                 setQ('');
-                                router.get(adminCertificatesRoutes.index().url);
+                                router.get(adminCertificatesRoutes.index().url, {}, { onStart: () => setIsLoading(true), onFinish: () => setIsLoading(false) });
                             }}
+                            disabled={isLoading}
                         >
                             Reset
                         </Button>
                     </div>
                 </form>
 
-                <div className="overflow-hidden rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
-                    <table className="w-full text-left text-sm">
+                <div className="overflow-x-auto rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
+                    <table className="min-w-[900px] w-full text-left text-sm">
                         <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
                             <tr>
                                 <th className="px-6 py-3 font-medium">Certificate #</th>
                                 <th className="px-6 py-3 font-medium">User</th>
                                 <th className="px-6 py-3 font-medium">Course</th>
                                 <th className="px-6 py-3 font-medium">Issued</th>
-                                <th className="px-6 py-3 font-medium text-right">Actions</th>
+                                <th className="px-6 py-3 font-medium text-right whitespace-nowrap">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-sidebar-border/70 dark:divide-sidebar-border">
@@ -102,7 +108,7 @@ export default function CertificatesIndex({ certificates, filters }: Props) {
                                         </Link>
                                     </td>
                                     <td className="px-6 py-4 text-muted-foreground">{new Date(c.issued_at).toLocaleString()}</td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-6 py-4 text-right whitespace-nowrap">
                                         <Button size="sm" variant="ghost" asChild>
                                             <Link href={adminCertificatesRoutes.show(c.id).url}>View</Link>
                                         </Button>

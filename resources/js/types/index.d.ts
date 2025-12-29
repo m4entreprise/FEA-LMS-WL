@@ -22,8 +22,34 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface BrandConfig {
+    name: string;
+    tagline: string;
+    logo?: string | null;
+    links: {
+        terms: string;
+        privacy: string;
+        support: string;
+    };
+    meta: {
+        description: string;
+        image: string;
+        favicon?: string;
+        favicon_svg?: string;
+        apple_touch_icon?: string;
+    };
+    tokens?: {
+        radius?: string | null;
+    };
+    colors: {
+        primary: string | null;
+        secondary: string | null;
+    };
+}
+
 export interface SharedData {
     name: string;
+    brand?: BrandConfig;
     quote: { message: string; author: string };
     auth: Auth;
     sidebarOpen: boolean;

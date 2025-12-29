@@ -41,6 +41,8 @@ class CourseController extends Controller
             'category' => 'nullable|string|max:255',
             'estimated_duration' => 'nullable|integer',
             'is_published' => 'boolean',
+            'certificate_title' => 'nullable|string|max:255',
+            'certificate_body' => 'nullable|string',
             'prerequisite_ids' => 'nullable|array',
             'prerequisite_ids.*' => 'integer|distinct|exists:courses,id',
         ]);
@@ -93,6 +95,8 @@ class CourseController extends Controller
             'category' => 'nullable|string|max:255',
             'estimated_duration' => 'nullable|integer',
             'is_published' => 'boolean',
+            'certificate_title' => 'nullable|string|max:255',
+            'certificate_body' => 'nullable|string',
             'prerequisite_ids' => 'nullable|array',
             'prerequisite_ids.*' => [
                 'integer',
