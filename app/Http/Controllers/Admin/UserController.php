@@ -66,6 +66,7 @@ class UserController extends Controller
              } else {
                  $completedCount = \App\Models\UserProgress::where('user_id', $user->id)
                      ->whereIn('content_id', $contentIds)
+                     ->whereNotNull('completed_at')
                      ->count();
                  $progress = round(($completedCount / $totalContents) * 100);
              }
@@ -83,6 +84,7 @@ class UserController extends Controller
 
         // Recent activity
         $recentActivity = \App\Models\UserProgress::where('user_id', $user->id)
+            ->whereNotNull('completed_at')
             ->with(['content.module.course'])
             ->orderBy('completed_at', 'desc')
             ->take(10)

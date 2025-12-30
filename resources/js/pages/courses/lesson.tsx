@@ -148,6 +148,7 @@ const ContentRenderer = ({ content }: { content: Content }) => {
 
 export default function LessonPlayer({ course, currentContent, userProgress = [], unlockedContentIds = [], previousContentId = null, nextContentId = null }: Props) {
     const isCompleted = userProgress.includes(currentContent.id);
+    const canManuallyComplete = !['quiz', 'scorm'].includes(currentContent.type);
     const scormAdapterRef = useRef<ScormAdapter | null>(null);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [isCompleting, setIsCompleting] = useState(false);
@@ -267,27 +268,29 @@ export default function LessonPlayer({ course, currentContent, userProgress = []
                                 <div className="text-sm text-muted-foreground">
                                     {isCompleted ? 'Completed' : 'Not completed'}
                                 </div>
-                                <Button 
-                                    variant={isCompleted ? "outline" : "default"}
-                                    onClick={() =>
-                                        router.post(
-                                            lessonsRoutes.complete({ course: course.slug, content: currentContent.id }).url,
-                                            {},
-                                            { preserveScroll: true, onStart: () => setIsCompleting(true), onFinish: () => setIsCompleting(false) }
-                                        )
-                                    }
-                                    disabled={isCompleting}
-                                >
-                                    {isCompleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                    {isCompleted ? (
-                                        <>
-                                            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                                            Completed
-                                        </>
-                                    ) : (
-                                        "Mark as Complete"
-                                    )}
-                                </Button>
+                                {canManuallyComplete ? (
+                                    <Button 
+                                        variant={isCompleted ? "outline" : "default"}
+                                        onClick={() =>
+                                            router.post(
+                                                lessonsRoutes.complete({ course: course.slug, content: currentContent.id }).url,
+                                                {},
+                                                { preserveScroll: true, onStart: () => setIsCompleting(true), onFinish: () => setIsCompleting(false) }
+                                            )
+                                        }
+                                        disabled={isCompleting}
+                                    >
+                                        {isCompleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                        {isCompleted ? (
+                                            <>
+                                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                                Completed
+                                            </>
+                                        ) : (
+                                            "Mark as Complete"
+                                        )}
+                                    </Button>
+                                ) : null}
                             </CardFooter>
                         </Card>
 

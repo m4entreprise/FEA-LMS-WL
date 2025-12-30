@@ -32,6 +32,7 @@ class DashboardController extends Controller
 
         // Get recent activity (completed lessons)
         $recentActivity = UserProgress::where('user_id', $user->id)
+            ->whereNotNull('completed_at')
             ->with(['content.module.course'])
             ->orderBy('completed_at', 'desc')
             ->take(5)
@@ -59,6 +60,7 @@ class DashboardController extends Controller
                 // Count how many of these contents the user has completed
                 $completedCount = UserProgress::where('user_id', $user->id)
                     ->whereIn('content_id', $contentIds)
+                    ->whereNotNull('completed_at')
                     ->count();
                 
                 $progress = round(($completedCount / $totalContents) * 100);

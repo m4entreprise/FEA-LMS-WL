@@ -177,6 +177,7 @@ class CourseController extends Controller
         if ($user && $canAccessAsEnrolled && $firstContentId) {
             $completedContentIds = UserProgress::where('user_id', $user->id)
                 ->whereIn('content_id', $orderedContents->pluck('id'))
+                ->whereNotNull('completed_at')
                 ->pluck('content_id')
                 ->all();
 

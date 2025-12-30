@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,11 +49,30 @@ interface Props {
 
 export default function QuizPlayer({ quiz }: Props) {
     const lastAttempt = quiz.attempts && quiz.attempts.length > 0 ? quiz.attempts[0] : null;
+    const passedAttempt = quiz.attempts?.find(a => a.passed) ?? null;
+    const displayAttempt = passedAttempt ?? lastAttempt;
+    const hasPassed = passedAttempt !== null;
     const [hasStarted, setHasStarted] = useState(false);
     const [cancelOpen, setCancelOpen] = useState(false);
+    const [deadlineAtMs, setDeadlineAtMs] = useState<number | null>(null);
+    const [timeLeftSeconds, setTimeLeftSeconds] = useState<number | null>(null);
+    const [localError, setLocalError] = useState<string | null>(null);
     const totalPoints = quiz.questions.reduce((sum, q) => sum + q.points, 0);
     const requiredPoints = Math.ceil((quiz.passing_score / 100) * totalPoints);
-    const lastAttemptPercent = lastAttempt && totalPoints > 0 ? Math.round((lastAttempt.score / totalPoints) * 100) : 0;
+    const displayAttemptPercent = displayAttempt && totalPoints > 0 ? Math.round((displayAttempt.score / totalPoints) * 100) : 0;
+
+    useEffect(() => {
+        if (!hasStarted || !deadlineAtMs) return;
+
+        const tick = () => {
+            const seconds = Math.max(0, Math.floor((deadlineAtMs - Date.now()) / 1000));
+            setTimeLeftSeconds(seconds);
+        };
+
+        tick();
+        const intervalId = window.setInterval(tick, 1000);
+        return () => window.clearInterval(intervalId);
+    }, [hasStarted, deadlineAtMs]);
 
     // Form state for answers
     // answers structure: [ { question_id: 1, option_id: 2, text_answer: null }, ... ]
@@ -67,7 +86,7 @@ export default function QuizPlayer({ quiz }: Props) {
         answers: []
     });
 
-    const handleStart = () => {
+    const handleStart = (practice?: boolean) => {
         // Initialize answers array with empty entries for each question
         const initialAnswers = quiz.questions.map(q => ({
             question_id: q.id,
@@ -76,6 +95,53 @@ export default function QuizPlayer({ quiz }: Props) {
         }));
         setData('answers', initialAnswers);
         setHasStarted(true);
+        setLocalError(null);
+
+        if (quiz.time_limit) {
+            setDeadlineAtMs(Date.now() + quiz.time_limit * 60 * 1000);
+        } else {
+            setDeadlineAtMs(null);
+            setTimeLeftSeconds(null);
+        }
+
+        const csrfToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content;
+        const baseStartUrl = quizzesRoutes.start(quiz.id).url;
+        const startUrl = practice ? `${baseStartUrl}?practice=1` : baseStartUrl;
+        void fetch(startUrl, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken ?? '',
+            },
+            credentials: 'same-origin',
+        }).then(async (res) => {
+            if (!res.ok) {
+                let message: string | null = null;
+                try {
+                    const payload = (await res.json()) as { error?: string };
+                    message = payload.error ?? null;
+                } catch {
+                    // ignore
+                }
+                setLocalError(message ?? 'Unable to start quiz.');
+                setHasStarted(false);
+                setDeadlineAtMs(null);
+                setTimeLeftSeconds(null);
+                reset();
+                return;
+            }
+
+            const payload = (await res.json()) as { deadline_at?: string | null };
+            if (payload.deadline_at) {
+                const parsed = Date.parse(payload.deadline_at);
+                if (!Number.isNaN(parsed)) {
+                    setDeadlineAtMs(parsed);
+                }
+            }
+        }).catch(() => {
+            // ignore
+        });
         
         // Optional: Call backend to log start time
         // axios.post(quizzesRoutes.start(quiz.id).url); 
@@ -101,22 +167,48 @@ export default function QuizPlayer({ quiz }: Props) {
 
     const submitQuiz = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (quiz.time_limit && timeLeftSeconds !== null && timeLeftSeconds <= 0) {
+            setLocalError('Time limit exceeded. Please retake the quiz.');
+            return;
+        }
+
         post(quizzesRoutes.submit(quiz.id).url, {
             onSuccess: () => {
                 setHasStarted(false);
+                setDeadlineAtMs(null);
+                setTimeLeftSeconds(null);
+                setLocalError(null);
                 reset();
             },
             preserveScroll: true,
         });
     };
 
-    if (lastAttempt && !hasStarted) {
-        const passed = lastAttempt.passed;
-        const correctAnswers = lastAttempt.correct_answers_count;
-        const totalAnswered = lastAttempt.answers_count;
+    if (displayAttempt && !hasStarted) {
+        const passed = displayAttempt.passed;
+        const correctAnswers = displayAttempt.correct_answers_count;
+        const totalAnswered = displayAttempt.answers_count;
         const hasAnswerCounts = typeof correctAnswers === 'number' && typeof totalAnswered === 'number';
         return (
             <div className="space-y-6">
+                {localError !== null ? (
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>{localError}</AlertDescription>
+                    </Alert>
+                ) : null}
+
+                {hasPassed ? (
+                    <Alert>
+                        <AlertTitle>Quiz Completed</AlertTitle>
+                        <AlertDescription>
+                            You already passed this quiz. Retakes do not change course completion.
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
+
                 {passed ? (
                     <Alert className="border-green-500 bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-300">
                         <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -124,9 +216,9 @@ export default function QuizPlayer({ quiz }: Props) {
                         <AlertDescription>
                             {hasAnswerCounts
                                 ? `You answered ${correctAnswers} / ${totalAnswered} questions correctly.`
-                                : `You scored ${lastAttempt.score} / ${totalPoints} points (${lastAttemptPercent}%).`}
+                                : `You scored ${displayAttempt.score} / ${totalPoints} points (${displayAttemptPercent}%).`}
                             <div className="mt-1 text-xs text-muted-foreground">
-                                Points: {lastAttempt.score} / {totalPoints}
+                                Points: {displayAttempt.score} / {totalPoints}
                             </div>
                         </AlertDescription>
                     </Alert>
@@ -137,10 +229,10 @@ export default function QuizPlayer({ quiz }: Props) {
                         <AlertDescription>
                             {hasAnswerCounts
                                 ? `You answered ${correctAnswers} / ${totalAnswered} questions correctly.`
-                                : `You scored ${lastAttempt.score} / ${totalPoints} points (${lastAttemptPercent}%).`}
+                                : `You scored ${displayAttempt.score} / ${totalPoints} points (${displayAttemptPercent}%).`}
                             You need {quiz.passing_score}% ({requiredPoints} points) to pass.
                             <div className="mt-1 text-xs text-muted-foreground">
-                                Points: {lastAttempt.score} / {totalPoints}
+                                Points: {displayAttempt.score} / {totalPoints}
                             </div>
                         </AlertDescription>
                     </Alert>
@@ -170,7 +262,7 @@ export default function QuizPlayer({ quiz }: Props) {
                         </div>
                     </CardContent>
                     <CardFooter>
-                         <Button variant="outline" onClick={handleStart}>Retake Quiz</Button>
+                         <Button variant="outline" onClick={() => handleStart(hasPassed)}>{hasPassed ? 'Practice Again' : 'Retake Quiz'}</Button>
                     </CardFooter>
                 </Card>
             </div>
@@ -181,6 +273,14 @@ export default function QuizPlayer({ quiz }: Props) {
     if (!hasStarted) {
         return (
             <div className="space-y-6">
+                {localError !== null ? (
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>{localError}</AlertDescription>
+                    </Alert>
+                ) : null}
+
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-xl">Quiz Instructions</CardTitle>
@@ -208,7 +308,7 @@ export default function QuizPlayer({ quiz }: Props) {
                         </div>
                     </CardContent>
                     <CardFooter>
-                        <Button onClick={handleStart} size="lg" className="w-full sm:w-auto">Start Quiz</Button>
+                        <Button onClick={() => handleStart(false)} size="lg" className="w-full sm:w-auto">Start Quiz</Button>
                     </CardFooter>
                 </Card>
             </div>
@@ -216,6 +316,12 @@ export default function QuizPlayer({ quiz }: Props) {
     }
 
     // Quiz Questions Form
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
     return (
         <form onSubmit={submitQuiz} className="space-y-8">
             <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
@@ -223,7 +329,7 @@ export default function QuizPlayer({ quiz }: Props) {
                 {quiz.time_limit && (
                     <Badge variant="outline" className="gap-1">
                         <Clock className="h-3 w-3" />
-                        Timer Placeholder
+                        {timeLeftSeconds !== null ? formatTime(timeLeftSeconds) : `${quiz.time_limit}:00`}
                     </Badge>
                 )}
             </div>
@@ -289,7 +395,11 @@ export default function QuizPlayer({ quiz }: Props) {
                 <Button type="button" variant="outline" onClick={() => setCancelOpen(true)}>
                     Cancel
                 </Button>
-                <Button type="submit" disabled={processing} size="lg">
+                <Button
+                    type="submit"
+                    disabled={processing || (quiz.time_limit && timeLeftSeconds !== null && timeLeftSeconds <= 0)}
+                    size="lg"
+                >
                     {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Submit Quiz
                 </Button>
@@ -304,16 +414,19 @@ export default function QuizPlayer({ quiz }: Props) {
                 confirmVariant="destructive"
                 onConfirm={() => {
                     setHasStarted(false);
+                    setDeadlineAtMs(null);
+                    setTimeLeftSeconds(null);
+                    setLocalError(null);
                     reset();
                 }}
             />
             
-            {Object.keys(errors).length > 0 && (
+            {(localError !== null || Object.keys(errors).length > 0) && (
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Error</AlertTitle>
                     <AlertDescription>
-                        Please answer all required questions.
+                        {localError ?? (errors as Record<string, string>).error ?? Object.values(errors)[0] ?? 'Please answer all required questions.'}
                     </AlertDescription>
                 </Alert>
             )}
